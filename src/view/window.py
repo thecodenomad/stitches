@@ -127,13 +127,19 @@ class StitchesWindow(Adw.ApplicationWindow):
     def check_and_enable(self, entry):
         input_buffer = entry.get_buffer().get_text()
         url_pattern = re.compile(r'https?://(?:www\.)?(twitter\.com/([A-Za-z0-9_]+)/status/(\d+)|youtube\.com|rumble\.com)')
+        curr_style = self.sidebar_notifier_label.get_style_context()
 
         if url_pattern.search(input_buffer):
             self.sidebar_entry.set_icon_sensitive(1, True)
-            self.sidebar_notifier_label.set_text("Valid!")
+            self.sidebar_notifier_label.set_text("Looks good!")
+            curr_style.remove_class("error")
+            curr_style.add_class("success")
             return
 
-        self.sidebar_notifier_label.set_text("Not valid yet.")
+        curr_style.remove_class("success")
+        curr_style.add_class("error")
+
+        self.sidebar_notifier_label.set_text("Not valid url.")
         self.sidebar_entry.set_icon_sensitive(1, False)
         # TODO, indicator for invalid url
 

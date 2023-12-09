@@ -50,7 +50,6 @@ template $StitchesWindow: Adw.ApplicationWindow {
             }
 
             Gtk.Label sidebar_notifier_label {
-              label: "You're wrong";
               styles [
                 "error"
               ]
@@ -72,70 +71,86 @@ template $StitchesWindow: Adw.ApplicationWindow {
           [top]
           Adw.HeaderBar header_bar_content {}
 
-          content: Adw.ToastOverlay {
+          content:
+              Gtk.Box {
+                orientation: vertical;
+                homogeneous: true;
+                margin-top: 12;
+                margin-end: 12;
+                margin-bottom: 12;
+                margin-start: 12;
+                spacing: 12;
 
-            Gtk.Box {
-              orientation: vertical;
-              homogeneous: true;
-              margin-top: 12;
-              margin-end: 12;
-              margin-bottom: 12;
-              margin-start: 12;
-              spacing: 12;
+                Gtk.Label {
+                  label: _("Nothing to see here yet");
+                  styles ["error" ]
+                }
+              };
 
-              Gtk.Video video {}
+          /* TODO Add default of an empty window since it will be overridden by next todo
+             TODO: This will have to move into it's own file due to Gtk inheritence??
+            Adw.ToastOverlay {
 
-              Adw.Clamp {
+              Gtk.Box {
+                orientation: vertical;
+                homogeneous: true;
+                margin-top: 12;
+                margin-end: 12;
+                margin-bottom: 12;
+                margin-start: 12;
+                spacing: 12;
 
-                child: Gtk.Box {
-                  orientation: vertical;
-                  spacing: 12;
+                Gtk.Video video {}
 
-                  Adw.EntryRow stitch_name_entry {
-                    title: 'Name';
-                    activates-default: true;
-                    show-apply-button: false;
-                    apply => $on_apply_button_pressed();
-                  }
+                Adw.Clamp {
 
-                  Adw.EntryRow stitch_artist_entry {
-                    title: 'Artist';
-                    activates-default: true;
-                    show-apply-button: false;
-                    apply => $on_apply_button_pressed();
-                  }
+                  child: Gtk.Box {
+                    orientation: vertical;
+                    spacing: 12;
 
-                  Adw.EntryRow stitch_link_entry {
-                    title: 'Link';
-                    activates-default: true;
-                    show-apply-button: false;
-                    apply => $on_apply_button_pressed();
-                  }
+                    Adw.EntryRow stitch_name_entry {
+                      title: 'Name';
+                      activates-default: true;
+                      show-apply-button: false;
+                      apply => $on_apply_button_pressed();
+                    }
 
-                  Adw.EntryRow stitch_location_entry {
-                    title: 'Location';
-                    activates-default: true;
-                    show-apply-button: false;
-                    apply => $on_apply_button_pressed();
-                  }
+                    Adw.EntryRow stitch_artist_entry {
+                      title: 'Artist';
+                      activates-default: true;
+                      show-apply-button: false;
+                      apply => $on_apply_button_pressed();
+                    }
 
-                  /*
+                    Adw.EntryRow stitch_link_entry {
+                      title: 'Link';
+                      activates-default: true;
+                      show-apply-button: false;
+                      apply => $on_apply_button_pressed();
+                    }
 
-                  TODO: Use this section to capture specific parts of a clip that are
-                  important.
+                    Adw.EntryRow stitch_location_entry {
+                      title: 'Location';
+                      activates-default: true;
+                      show-apply-button: false;
+                      apply => $on_apply_button_pressed();
+                    }
 
-                  TODO: Allow for the user to be able to export these sections while maintaining
-                  the proper exif data.
 
-                  Gtk.Label {
-                    label: 'Bookmarks';
-                  }
+                    TODO: Use this section to capture specific parts of a clip that are
+                    important.
 
-                  */
-                };
+                    TODO: Allow for the user to be able to export these sections while maintaining
+                    the proper exif data.
+
+                    Gtk.Label {
+                      label: 'Bookmarks';
+                    }
+
+                  };
+                }
               }
-            }
-          };
+            };*/
         };
       };
     }
