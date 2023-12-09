@@ -60,6 +60,7 @@ class StitchesWindow(Adw.ApplicationWindow):
     sidebar: Gtk.Box = Gtk.Template.Child()
     sidebar_listview: Gtk.ListView = Gtk.Template.Child()
     sidebar_entry: Gtk.Entry = Gtk.Template.Child()
+    sidebar_notifier_label: Gtk.Label = Gtk.Template.Child()
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -129,8 +130,10 @@ class StitchesWindow(Adw.ApplicationWindow):
 
         if url_pattern.search(input_buffer):
             self.sidebar_entry.set_icon_sensitive(1, True)
+            self.sidebar_notifier_label.set_text("Valid!")
             return
 
+        self.sidebar_notifier_label.set_text("Not valid yet.")
         self.sidebar_entry.set_icon_sensitive(1, False)
         # TODO, indicator for invalid url
 

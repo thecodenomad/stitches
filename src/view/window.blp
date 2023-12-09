@@ -49,6 +49,13 @@ template $StitchesWindow: Adw.ApplicationWindow {
               //icon-release => $add_new_url();
             }
 
+            Gtk.Label sidebar_notifier_label {
+              label: "You're wrong";
+              styles [
+                "error"
+              ]
+            }
+
             /* Set in code */
             Gtk.ListView  sidebar_listview {}
 
