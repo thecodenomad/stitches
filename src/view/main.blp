@@ -1,0 +1,167 @@
+using Gtk 4.0;
+using Adw 1;
+
+template $ExampleWindow: Adw.ApplicationWindow {
+  title: 'Stitches';
+  default-width: 768;
+  default-height: 640;
+  width-request: 768;
+  height-request: 640;
+
+  /* TODO: Need to figure out for mobile support
+  Adw.Breakpoint {
+    condition ('max-width: 400')
+
+    setters {
+      adw_navigation_split_view.collapsed: true;
+    }
+  }
+*/
+  content: Adw.ToastOverlay {
+    Adw.NavigationSplitView adw_navigation_split_view {
+      sidebar: Adw.NavigationPage {
+        width-request: 250;
+        title: _('Stiches');
+
+        child: Adw.ToolbarView {
+          [top]
+          Adw.HeaderBar header_bar {
+            [start]
+            Button {
+              icon-name: 'list-add';
+              clicked => $on_add_button_clicked();
+            }
+
+            [end]
+            MenuButton {
+              icon-name: 'open-menu-symbolic';
+              menu-model: primary_menu;
+            }
+          }
+
+          content: Box {
+            orientation: vertical;
+            spacing: 12;
+            margin-top: 12;
+            margin-end: 12;
+            margin-bottom: 12;
+            margin-start: 12;
+
+            /* Create ListView that is bound to the list store objects */
+            Gtk.ListView  sidebar_listview {
+/*
+              activate => $on_list_view_row_activate();
+
+              factory: Gtk.BuilderListItemFactory {
+                template Gtk.ListItem {
+                  child: Adw.EntryRow {
+                    title: bind template.item as <StringObject>.string;
+                    activates-default: false;
+                    show-apply-button: true;
+                    apply => $on_apply_button_pressed();
+                  };
+                }
+              };
+
+              model: Gtk.SingleSelection {
+                model: Gtk.StringList {
+                  strings [
+                    'https://twitter.com/LauraLoomer/status/1732853903941624275',
+                    'https://twitter.com/RepublicanRefl/status/1732855684117495896',
+                    'https://twitter.com/BrainStorm_Joe/status/1732888899725230138'
+                  ]
+                };
+              };
+*/
+
+            }
+
+            /* End of ListView */
+          };
+        };
+      };
+
+      content: Adw.NavigationPage {
+        title: _('Video');
+        tag: 'content';
+
+        child: Adw.ToolbarView {
+          [top]
+          Adw.HeaderBar header_bar_content {}
+
+          content: Adw.ToastOverlay {
+            Gtk.Box {
+              orientation: vertical;
+              homogeneous: true;
+              margin-top: 12;
+              margin-end: 12;
+              margin-bottom: 12;
+              margin-start: 12;
+              spacing: 12;
+
+              Gtk.Video video {}
+
+              Adw.Clamp {
+                child: Gtk.Box {
+                  orientation: vertical;
+                  spacing: 12;
+
+                  Adw.EntryRow stitch_name_entry {
+                    title: 'Name';
+                    activates-default: true;
+                    show-apply-button: false;
+                    apply => $on_apply_button_pressed();
+                  }
+
+                  Adw.EntryRow stitch_artist_entry {
+                    title: 'Artist';
+                    activates-default: true;
+                    show-apply-button: false;
+                    apply => $on_apply_button_pressed();
+                  }
+
+                  Adw.EntryRow stitch_link_entry {
+                    title: 'Link';
+                    activates-default: true;
+                    show-apply-button: false;
+                    apply => $on_apply_button_pressed();
+                  }
+
+                  Adw.EntryRow stitch_location_entry {
+                    title: 'Location';
+                    activates-default: true;
+                    show-apply-button: false;
+                    apply => $on_apply_button_pressed();
+                  }
+
+                  /*
+
+                  TODO: Use this section to capture specific parts of a clip that are
+                  important.
+
+                  TODO: Allow for the user to be able to export these sections while maintaining
+                  the proper exif data.
+
+                  Gtk.Label {
+                    label: 'Bookmarks';
+                  }
+
+                  */
+                };
+              }
+            }
+          };
+        };
+      };
+    }
+  };
+}
+
+menu primary_menu {
+  section {
+    item {
+      label: _('Preferences');
+      action: 'app.preferences';
+    }
+  }
+}

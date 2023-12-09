@@ -1,0 +1,6 @@
+data/org.codenomad.stitches.desktop.in
+data/org.codenomad.stitches.metainfo.xml.in
+data/org.codenomad.stitches.gschema.xml
+src/main.py
+src/window.py
+src/window.ui

@@ -1,0 +1,17 @@
+using Gtk 4.0;
+using Adw 1;
+
+template StitchesWindow : Adw.ApplicationWindow {
+  default-width: 600;
+  default-height: 300;
+  title: _("Hello, Blueprint!");
+
+  Adw.ToolbarView {
+    [top]
+    Adw.HeaderBar {}
+
+    content: Label label {
+      label: "Yay, blueprint is setup!";
+    };
+  }
+}

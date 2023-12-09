@@ -1,2 +1,3 @@
 # stitches
-Track clips you've captured.
+
+A description of this project.
