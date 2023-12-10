@@ -99,6 +99,8 @@ class StitchesWindow(Adw.ApplicationWindow):
 
         # Add dummy data
         self.model.append(temp_object_one)
+        self.update_content(self.sidebar_listview)
+
 
     def update_content(self, view, pos=None):
         model = view.get_model().get_selected_item()
@@ -106,7 +108,6 @@ class StitchesWindow(Adw.ApplicationWindow):
         self.stitch_name_entry.set_text(model.name)
         self.stitch_artist_entry.set_text(model.artist)
         self.stitch_link_entry.set_text(model.url)
-        self.stitch_location_entry.set_text(model.location or "")
 
 
     # NOTE: This decorator is required for .blp/.ui files to setup the connections
