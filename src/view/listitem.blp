@@ -2,13 +2,13 @@ using Gtk 4.0;
 using Adw 1;
 
 template Gtk.ListItem  {
-//  Gtk.ListItem {
-    child:
-      Adw.Clamp {
+  child:
+    Adw.Clamp {
+      height-request: 75;
 
-        Gtk.Label url_label {
-          label: bind (template.item as <$StitchesObject>).url;
-        }
-      };
-//  }
+      Adw.ActionRow stitch_name_entry {
+        subtitle: bind (template.item as <$StitchesObject>).url;
+        title: bind (template.item as <$StitchesObject>).name;
+      }
+    };
 }

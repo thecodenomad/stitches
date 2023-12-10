@@ -1,6 +1,6 @@
 # window.py
 #
-# Copyright 2023 Ray Gomez
+# Copyright 2023 codenomad
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -32,9 +32,9 @@ class StitchesObject(GObject.GObject):
         # By default grab the url for the name if it's not set. The user controls the name
         # of the object when they decide on the right hand side of the app'
         self._name = name or url
-        self._artist = artist
-        self._url = url
-        self._location = location
+        self._artist = artist or ""
+        self._url = url or ""
+        self._location = location or ""
 
     @GObject.Property(type=str)
     def name(self):
@@ -62,6 +62,12 @@ class StitchesWindow(Adw.ApplicationWindow):
     sidebar_entry: Gtk.Entry = Gtk.Template.Child()
     sidebar_notifier_label: Gtk.Label = Gtk.Template.Child()
 
+    # Content Specific (maybe move to different file...)
+    stitch_name_entry: Gtk.Entry = Gtk.Template.Child()
+    stitch_artist_entry: Gtk.Entry = Gtk.Template.Child()
+    stitch_link_entry: Gtk.Entry = Gtk.Template.Child()
+    stitch_download_button: Gtk.Button = Gtk.Template.Child()
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
@@ -85,27 +91,27 @@ class StitchesWindow(Adw.ApplicationWindow):
         # Create the listview
         self.sidebar_listview = Gtk.ListView(model=self.selection, factory=self.factory)
         self.sidebar_listview.props.show_separators = True
-        self.sidebar_listview.props.single_click_activate = False
+        self.sidebar_listview.props.single_click_activate = True
+        self.sidebar_listview.connect("activate", self.update_content)
 
         # Set listview
         self.sidebar.append(self.sidebar_listview)
 
+        # Add dummy data
         self.model.append(temp_object_one)
 
-        # If empty, disable button (note: 0: start, 1: end of entrybox):
-        self.sidebar_entry.set_icon_sensitive(1, False)
+    def update_content(self, view, pos=None):
+        model = view.get_model().get_selected_item()
 
-        # Connect entry icon to signal:
-        # Gtk.Entry.signals.icon_press(entry, icon_pos)
-
-        self.sidebar_entry.connect("icon-press", self.add_new_url)
-        self.sidebar_entry.connect("changed", self.check_and_enable)
-        self.sidebar_entry.connect("activate", self.enter_submission_check)
+        self.stitch_name_entry.set_text(model.name)
+        self.stitch_artist_entry.set_text(model.artist)
+        self.stitch_link_entry.set_text(model.url)
+        self.stitch_location_entry.set_text(model.location or "")
 
 
+    # NOTE: This decorator is required for .blp/.ui files to setup the connections
+    @Gtk.Template.Callback()
     def add_new_url(self, entry, icon_pos=None):
-
-        print(f"Sensitivity: {self.sidebar_entry.get_icon_sensitive(1)}")
         if not self.sidebar_entry.get_icon_sensitive(1):
             print(f"Button not enabled yet...")
             return
@@ -114,35 +120,68 @@ class StitchesWindow(Adw.ApplicationWindow):
         input_buffer = entry.get_buffer()
         url = input_buffer.get_text()
 
+        # Find the 'artist'
+        pattern = r"twitter\.com\/([a-zA-Z0-9_]+)\/"
+        match = re.search(pattern, url)
+        detected_artist = "???"
+        if match:
+            detected_artist = match.group(1)
+
         # Add new StitchesObject to the store
-        stitches_obj = StitchesObject(url=url)
+        stitches_obj = StitchesObject(url=url, artist=detected_artist)
         self.model.append(stitches_obj)
         len = input_buffer.get_length()
         input_buffer.delete_text(0, len)
         print(f"yay - url added: {url}")
 
         # Disable button when nothing in text field
-        self.sidebar_entry.set_icon_sensitive(1, False)
+        #self.sidebar_entry.set_icon_sensitive(1, True)
+        self.update_content(self.sidebar_listview)
 
+    def get_artist_from_url(self, url):
+        # Find the 'artist'
+        pattern = r"twitter\.com\/([a-zA-Z0-9_]+)\/"
+        match = re.search(pattern, url)
+        detected_artist = "???"
+        if match:
+            detected_artist = match.group(1)
+        return detected_artist
+
+    # TODO: create one for each service so a custom mechanism to grab an artist/url/etc
+    def is_valid_url(self, url):
+        url_pattern = re.compile(r'https://(?:www\.)?(twitter\.com/([A-Za-z0-9_]+)/status/(\d+)|youtube\.com|rumble\.com)')
+        if url_pattern.search(url):
+            print(f"Looks like a valid url: {url}: {url_pattern.search(url)}")
+            return True
+        print(f"Womp womp, invalid url: {url}: {url_pattern.search(url)}")
+        return False
+
+
+    @Gtk.Template.Callback()
     def check_and_enable(self, entry):
         input_buffer = entry.get_buffer().get_text()
-        url_pattern = re.compile(r'https?://(?:www\.)?(twitter\.com/([A-Za-z0-9_]+)/status/(\d+)|youtube\.com|rumble\.com)')
         curr_style = self.sidebar_notifier_label.get_style_context()
 
-        if url_pattern.search(input_buffer):
-            self.sidebar_entry.set_icon_sensitive(1, True)
-            self.sidebar_notifier_label.set_text("Looks good!")
-            curr_style.remove_class("error")
-            curr_style.add_class("success")
-            return
+        if self.is_valid_url(input_buffer):
+#            self.sidebar_entry.set_icon_sensitive(1, True)
+#            self.sidebar_notifier_label.set_text("Looks good!")
+#            curr_style.remove_class("error")
+#            curr_style.add_class("success")
+#            return
+            pass
 
-        curr_style.remove_class("success")
-        curr_style.add_class("error")
+#        curr_style.remove_class("success")
+#        curr_style.add_class("error")
 
-        self.sidebar_notifier_label.set_text("Not valid url.")
-        self.sidebar_entry.set_icon_sensitive(1, False)
+#        if len(input_buffer) > 0:
+#            self.sidebar_notifier_label.set_text("Not valid url.")
+#        else:
+#            self.sidebar_notifier_label.set_text("")
+#
+#        self.sidebar_entry.set_icon_sensitive(1, False)
         # TODO, indicator for invalid url
 
+    @Gtk.Template.Callback()
     def enter_submission_check(self, entry):
 
         input_buffer = entry.get_buffer().get_text()
@@ -153,14 +192,138 @@ class StitchesWindow(Adw.ApplicationWindow):
         print(f"Somebody hit enter with:\t{input_buffer}")
         self.add_new_url(entry)
 
-        # Check if the pressed key is Enter (keyval=65293)
-#        if event.keyval == Gdk.KEY_Return or event.keyval == Gdk.KEY_KP_Enter:
-            # Handle Enter key press
-#            entered_text = widget.get_text()
-#            print(f"Enter key pressed. Entered Text: {entered_text}")
 
+    def _update_selected_stitch(self, stitch, stitch_pos):
+        """Updates the selected item in the listview by deleting and replacing the item in the
+        ListStore."""
+        stitch = self.sidebar_listview.get_model().get_selected_item()
+        exists, stitch_pos = self.model.find(stitch)
+
+        # Something super bonkers got us here, how could this ever not exist when
+        # an item is always selected?
+        if not exists:
+            return
+
+        # Remove item at the position
+        self.model.remove(stitch_pos)
+
+        # Readd item at the position
+        self.model.insert(stitch_pos, stitch)
+
+
+    @Gtk.Template.Callback()
+    def update_model_name(self, entry):
+        print("Update model name has been changed")
+
+        buffer = entry.get_text()
+
+        # Don't do anything until we actually have a value to change to'
+        if len(buffer) == 0:
+            return
+
+        # Get the selected model
+        stitch = self.sidebar_listview.get_model().get_selected_item()
+        exists, stitch_pos = self.model.find(stitch)
+        stitch._name = buffer
+        self._update_selected_stitch(stitch, stitch_pos)
+
+        # Now update the model at the position in the listview
+        print(f"Model.name is currently set to: {stitch.name}")
+
+
+    @Gtk.Template.Callback()
+    def update_model_artist(self, entry, artist=None):
+        print("Update model name has been changed")
+
+        buffer = entry.get_text()
+
+        if artist:
+            buffer = artist
+
+        # Don't do anything until we actually have a value to change to'
+        if len(buffer) == 0:
+            return
+
+        # Get the selected model
+        stitch = self.sidebar_listview.get_model().get_selected_item()
+        exists, stitch_pos = self.model.find(stitch)
+        stitch._artist = buffer
+
+        # If we were called externally, don't do the stitch update, need abstractions'
+        if not artist:
+            self._update_selected_stitch(stitch, stitch_pos)
+
+        # Now update the model at the position in the listview
+        print(f"Model.artist is currently set to: {stitch.artist}")
+
+
+    @Gtk.Template.Callback()
+    def update_model_url(self, entry):
+        buffer = entry.get_text()
+
+        # Don't do anything until we actually have a value to change to'
+        if len(buffer) == 0:
+            return
+
+        if not self.is_valid_url(buffer):
+            print(f"Invalid url: {buffer}")
+            return
+
+        # Get the selected model
+        stitch = self.sidebar_listview.get_model().get_selected_item()
+        exists, stitch_pos = self.model.find(stitch)
+        stitch._url = buffer
+
+        # The artist should always match the url (maybe made this configurable in prefernces)
+        new_artist = self.get_artist_from_url(stitch.url)
+        self.update_model_artist(entry, artist=new_artist)
+
+        self._update_selected_stitch(stitch, stitch_pos)
+
+        # Now update the model at the position in the listview
+        print(f"Model.url is currently set to: {stitch.url}")
+
+
+#    @Gtk.Template.Callback()
+    def update_model_file_location(self, entry):
+        buffer = entry.get_text()
+
+        # Don't do anything until we actually have a value to change to'
+        if len(buffer) == 0 and not self.is_valid_url(buffer):
+            return
+
+        # Get the selected model
+        stitch = self.sidebar_listview.get_model().get_selected_item()
+        exists, stitch_pos = self.model.find(stitch)
+        stitch._location = buffer
+        self._update_selected_stitch(stitch, stitch_pos)
+
+        # Now update the model at the position in the listview
+        print(f"Model.location is currently set to: {stitch.location}")
+
+
+#    @Gtk.Template.Callback()
     def save_settings(self):
         #self.settings.set_int("window-width", win_size.width)
         #self.settings.set_int("window-height", win_size.height)
         print("yay - settings saved (Not Implimented yet")
+
+
+    @Gtk.Template.Callback()
+    def download_url(self, clicked_button):
+        print("Should attempt to download the url.")
+        stitch = self.sidebar_listview.get_model().get_selected_item()
+
+        print(f"Downloading: {stitch.url}")
+
+        # add yt-dlp call here
+
+
+    # Ref: https://pypi.org/project/yt-dlp/#embedding-examples
+    def download_from_youtube(self, url):
+        from yt_dlp import YoutubeDL
+
+        with YoutubeDL() as ydl:
+            download = ydl.download([url])
+            print(download)
 

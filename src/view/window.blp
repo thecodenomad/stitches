@@ -17,6 +17,7 @@ template $StitchesWindow: Adw.ApplicationWindow {
     }
   }
 */
+
   content: Adw.ToastOverlay {
     Adw.NavigationSplitView adw_navigation_split_view {
       sidebar: Adw.NavigationPage {
@@ -40,13 +41,20 @@ template $StitchesWindow: Adw.ApplicationWindow {
             margin-end: 12;
             margin-bottom: 12;
             margin-start: 12;
-
+            height-request: 768;
 
            /* TODO: Figure out how to disable the icon when no text in entry */
             Gtk.Entry sidebar_entry {
+              primary-icon-sensitive: false;
+              secondary-icon-sensitive: true;
+
               placeholder-text: "Enter a url...";
               secondary-icon-name: "list-add-symbolic";
-              //icon-release => $add_new_url();
+
+              /* Define the signals and their actions */
+              icon-press => $add_new_url();
+              changed => $check_and_enable();
+              activate => $enter_submission_check();
             }
 
             Gtk.Label sidebar_notifier_label {
@@ -56,7 +64,8 @@ template $StitchesWindow: Adw.ApplicationWindow {
             }
 
             /* Set in code */
-            Gtk.ListView  sidebar_listview {}
+            Gtk.ListView  sidebar_listview {
+            }
 
             /* End of ListView */
           };
@@ -72,6 +81,7 @@ template $StitchesWindow: Adw.ApplicationWindow {
           Adw.HeaderBar header_bar_content {}
 
           content:
+/*
               Gtk.Box {
                 orientation: vertical;
                 homogeneous: true;
@@ -86,12 +96,13 @@ template $StitchesWindow: Adw.ApplicationWindow {
                   styles ["error" ]
                 }
               };
-
+*/
           /* TODO Add default of an empty window since it will be overridden by next todo
-             TODO: This will have to move into it's own file due to Gtk inheritence??
+             TODO: This will have to move into it's own file due to Gtk inheritence?? */
+
             Adw.ToastOverlay {
 
-              Gtk.Box {
+              Gtk.Box content_box {
                 orientation: vertical;
                 homogeneous: true;
                 margin-top: 12;
@@ -111,46 +122,54 @@ template $StitchesWindow: Adw.ApplicationWindow {
                     Adw.EntryRow stitch_name_entry {
                       title: 'Name';
                       activates-default: true;
-                      show-apply-button: false;
-                      apply => $on_apply_button_pressed();
+                      show-apply-button: true;
+                      apply => $update_model_name();
+//                      changed => $update_model_name();
                     }
 
                     Adw.EntryRow stitch_artist_entry {
                       title: 'Artist';
                       activates-default: true;
-                      show-apply-button: false;
-                      apply => $on_apply_button_pressed();
+                      show-apply-button: true;
+                      apply => $update_model_artist();
                     }
 
                     Adw.EntryRow stitch_link_entry {
-                      title: 'Link';
+                      title: 'URL';
                       activates-default: true;
-                      show-apply-button: false;
-                      apply => $on_apply_button_pressed();
+                      show-apply-button: true;
+                      apply => $update_model_url();
                     }
 
-                    Adw.EntryRow stitch_location_entry {
-                      title: 'Location';
-                      activates-default: true;
-                      show-apply-button: false;
-                      apply => $on_apply_button_pressed();
+//                    Adw.EntryRow stitch_location_entry {
+//                      title: 'File Location';
+//                      activates-default: true;
+//                      show-apply-button: true;
+//                      apply => $update_model_file_location();
+//                    }
+
+                    Gtk.Button stitch_download_button {
+                      label: "Download";
+                      clicked => $download_url();
+                      styles [
+                        "suggested-action"
+                      ]
                     }
 
+                    // TODO: Use this section to capture specific parts of a clip that are
+                    // important.
 
-                    TODO: Use this section to capture specific parts of a clip that are
-                    important.
-
-                    TODO: Allow for the user to be able to export these sections while maintaining
-                    the proper exif data.
+                    // TODO: Allow for the user to be able to export these sections while maintaining
+                    // the proper exif data.
 
                     Gtk.Label {
                       label: 'Bookmarks';
                     }
-
                   };
                 }
               }
-            };*/
+            }; // End of ListView
+
         };
       };
     }
