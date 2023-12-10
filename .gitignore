@@ -2,3 +2,4 @@ subprojects/
 .flatpak-builder
 _requirements.txt
 .venv
+requirements.txt

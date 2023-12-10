@@ -1,0 +1,20 @@
+[tool.poetry]
+name = "stitches"
+version = "0.1.0"
+description = ""
+authors = ["Ray Gomez <ray.rgomez@gmail.com>"]
+license = "GPL 3.0"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+yt-dlp = "^2023.11.16"
+
+
+[tool.poetry.group.development.dependencies]
+requirements-parser = "^0.5.0"
+setuptools = "^69.0.2"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
