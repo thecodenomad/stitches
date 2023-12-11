@@ -22,6 +22,11 @@ import re
 from gi.repository import Adw
 from gi.repository import Gtk, GObject, Gio
 
+# 3rd party imports
+from yt_dlp import YoutubeDL
+
+YT_DLP_OPTIONS = {"outtmpl": "$HOME/Videos/python/%(title)s.%(ext)s"}
+
 
 class StitchesObject(GObject.GObject):
     __gtype_name__ = 'StitchesObject'
@@ -67,15 +72,17 @@ class StitchesWindow(Adw.ApplicationWindow):
     stitch_artist_entry: Gtk.Entry = Gtk.Template.Child()
     stitch_link_entry: Gtk.Entry = Gtk.Template.Child()
     stitch_download_button: Gtk.Button = Gtk.Template.Child()
+    stitches_toast: Adw.ToastOverlay = Gtk.Template.Child()
+    stitch_video: Gtk.Video = Gtk.Template.Child()
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
         # self.settings = Gio.Settings.new("org.codenomad.stitches")
         temp_object_one = StitchesObject(
-            name="Twitter 1",
-            artist="LauraLoomer",
-            url="https://twitter.com/LauraLoomer/status/1732853903941624275",
+            name="Twitter1.mp4",
+            artist="",
+            url="https://twitter.com/Thekeksociety/status/1733473570343289235",
             location=None
         )
 
@@ -318,13 +325,28 @@ class StitchesWindow(Adw.ApplicationWindow):
         print(f"Downloading: {stitch.url}")
 
         # add yt-dlp call here
+        result = self.download_from_youtube(stitch.url, name=stitch.name)
+        print(f"Result: {result}")
 
 
     # Ref: https://pypi.org/project/yt-dlp/#embedding-examples
-    def download_from_youtube(self, url):
-        from yt_dlp import YoutubeDL
+    def download_from_youtube(self, url, name):
 
-        with YoutubeDL() as ydl:
+        yt_dl_options = YT_DLP_OPTIONS
+        if name:
+            yt_dl_options = {
+#                "outtmpl": f"$HOME/Videos/python/{name}"
+                "outtmpl": f"/var/home/codenomad/Videos/python/{name}",
+                "format": "best",
+                "merge_output_format": "mkv"
+        }
+
+        with YoutubeDL(yt_dl_options) as ydl:
             download = ydl.download([url])
-            print(download)
+
+        message = Adw.Toast.new(f"{name or url} has been downloaded")
+        self.stitches_toast.add_toast(message)
+        self.stitch_video.set_filename(yt_dl_options["outtmpl"]["default"])
+
+        print(f'Filename: {yt_dl_options["outtmpl"]["default"]}')
 

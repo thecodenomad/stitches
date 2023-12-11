@@ -3,3 +3,4 @@ subprojects/
 _requirements.txt
 .venv
 requirements.txt
+pypi_cache

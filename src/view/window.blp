@@ -100,7 +100,7 @@ template $StitchesWindow: Adw.ApplicationWindow {
           /* TODO Add default of an empty window since it will be overridden by next todo
              TODO: This will have to move into it's own file due to Gtk inheritence?? */
 
-            Adw.ToastOverlay {
+            Adw.ToastOverlay stitches_toast {
 
               Gtk.Box content_box {
                 orientation: vertical;
@@ -111,7 +111,7 @@ template $StitchesWindow: Adw.ApplicationWindow {
                 margin-start: 12;
                 spacing: 12;
 
-                Gtk.Video video {}
+                Gtk.Video stitch_video {}
 
                 Adw.Clamp {
 

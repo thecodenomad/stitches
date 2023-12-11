@@ -18,5 +18,6 @@ poetry export --without-hashes --format=requirements.txt > requirements.txt
 
 # Activate the environment
 source .venv/bin/activate
-flatpak-pip-generator --requirements-file=requirements.txt --output python-deps
+#flatpak-pip-generator --requirements-file=requirements.txt --output python-deps
+req2flatpak --requirements-file=requirements.txt --outfile python-deps.json --target-platform '45-x86_64'
 deactivate

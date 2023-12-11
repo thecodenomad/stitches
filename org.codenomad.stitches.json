@@ -9,7 +9,10 @@
         "--share=ipc",
         "--socket=fallback-x11",
         "--device=dri",
-        "--socket=wayland"
+        "--socket=wayland",
+	"--device=dri",
+        "--filesystem=home",
+        "--socket=pulseaudio"
     ],
     "cleanup" : [
         "/include",
@@ -22,6 +25,11 @@
         "*.la",
         "*.a"
     ],
+    "build-options": {
+        "build-args": [
+          "--share=network",
+        ]
+    },
     "modules" : [
     	"python-deps.json",
         {

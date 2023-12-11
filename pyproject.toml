@@ -9,12 +9,23 @@ readme = "README.md"
 [tool.poetry.dependencies]
 python = "^3.12"
 yt-dlp = "^2023.11.16"
+brotlicffi = "^1.1.0.0"
 
 
-[tool.poetry.group.development.dependencies]
+[tool.poetry.group.dev.dependencies]
 requirements-parser = "^0.5.0"
 setuptools = "^69.0.2"
+poetry-plugin-export = "^1.6.0"
+req2flatpak = "^0.2.0"
+toml = "^0.10.2"
+
 
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+
+[tool.pytest.ini_options]
+pythonpath = [
+  "."
+]
