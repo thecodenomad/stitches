@@ -3,6 +3,5 @@
   <gresource prefix="/org/codenomad/stitches">
     <file preprocess="xml-stripblanks">window.ui</file>
     <file preprocess="xml-stripblanks">listitem.ui</file>
-    <file preprocess="xml-stripblanks">gtk/help-overlay.ui</file>
   </gresource>
 </gresources>

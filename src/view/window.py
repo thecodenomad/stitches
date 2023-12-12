@@ -17,6 +17,7 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+import os
 import re
 
 from gi.repository import Adw
@@ -25,7 +26,28 @@ from gi.repository import Gtk, GObject, Gio
 # 3rd party imports
 from yt_dlp import YoutubeDL
 
-YT_DLP_OPTIONS = {"outtmpl": "$HOME/Videos/python/%(title)s.%(ext)s"}
+BASE_DL_LOC = "$HOME/Videos/python"
+YT_DLP_OPTIONS = {"outtmpl": f"{BASE_DL_LOC}/%(title)s.%(ext)s"}
+
+
+def get_artist_from_url(url):
+    # Find the 'artist'
+    pattern = r"twitter\.com\/([a-zA-Z0-9_]+)\/"
+    match = re.search(pattern, url)
+    detected_artist = "???"
+    if match:
+        detected_artist = match.group(1)
+    return detected_artist
+
+def get_twitter_status_id(url):
+    # Find the id of a post
+
+    pattern = re.compile(r"(?<=status/)\d+")
+    match = re.search(pattern, url)
+    status_id = "unknown"
+    if match:
+        status_id = match.group()
+    return status_id
 
 
 class StitchesObject(GObject.GObject):
@@ -36,10 +58,25 @@ class StitchesObject(GObject.GObject):
 
         # By default grab the url for the name if it's not set. The user controls the name
         # of the object when they decide on the right hand side of the app'
-        self._name = name or url
-        self._artist = artist or ""
+        self._name = name
+        self._artist = artist
         self._url = url or ""
-        self._location = location or ""
+        self._location = location
+
+        if not self._artist:
+            self._artist = get_artist_from_url(self._url)
+
+        if not self._name:
+            status_id = get_twitter_status_id(self._url)
+            self._name = f"{self._artist}_status_{status_id}"
+
+        if not self._location:
+            self._location = f"{BASE_DL_LOC}/{self._name}"
+            self._location = os.path.expandvars(self._location)
+
+        print(f"The location: {self._location}")
+        print(f"The artist: {self._artist}")
+
 
     @GObject.Property(type=str)
     def name(self):
@@ -63,9 +100,10 @@ class StitchesWindow(Adw.ApplicationWindow):
     __gtype_name__ = 'StitchesWindow'
 
     sidebar: Gtk.Box = Gtk.Template.Child()
-    sidebar_listview: Gtk.ListView = Gtk.Template.Child()
+    # sidebar_listview: Gtk.ListView = Gtk.Template.Child()
     sidebar_entry: Gtk.Entry = Gtk.Template.Child()
-    sidebar_notifier_label: Gtk.Label = Gtk.Template.Child()
+    # sidebar_notifier_label: Gtk.Label = Gtk.Template.Child()
+    sidebar_window: Gtk.ScrolledWindow = Gtk.Template.Child()
 
     # Content Specific (maybe move to different file...)
     stitch_name_entry: Gtk.Entry = Gtk.Template.Child()
@@ -74,6 +112,11 @@ class StitchesWindow(Adw.ApplicationWindow):
     stitch_download_button: Gtk.Button = Gtk.Template.Child()
     stitches_toast: Adw.ToastOverlay = Gtk.Template.Child()
     stitch_video: Gtk.Video = Gtk.Template.Child()
+
+    # Buttons
+    stitch_file_location = Gtk.Label = Gtk.Template.Child()
+    stitch_download_button = Gtk.Button = Gtk.Template.Child()
+
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -102,19 +145,32 @@ class StitchesWindow(Adw.ApplicationWindow):
         self.sidebar_listview.connect("activate", self.update_content)
 
         # Set listview
-        self.sidebar.append(self.sidebar_listview)
+        self.sidebar_window.append(self.sidebar_listview)
 
         # Add dummy data
-        self.model.append(temp_object_one)
+        # self.model.append(temp_object_one)
         self.update_content(self.sidebar_listview)
 
 
     def update_content(self, view, pos=None):
         model = view.get_model().get_selected_item()
+        if not model:
+            return
 
         self.stitch_name_entry.set_text(model.name)
         self.stitch_artist_entry.set_text(model.artist)
         self.stitch_link_entry.set_text(model.url)
+
+        # Update the location of the file
+        #print(f"Location: {model.location}")
+        self.stitch_file_location.set_text(model.name)
+
+        # Disable the download button if the file exists
+        if model.location:
+            self.stitch_download_button.set_sensitive(not os.path.exists(model.location))
+
+        if os.path.exists(model.location):
+            self.stitch_video.set_filename(model.location)
 
 
     # NOTE: This decorator is required for .blp/.ui files to setup the connections
@@ -128,15 +184,8 @@ class StitchesWindow(Adw.ApplicationWindow):
         input_buffer = entry.get_buffer()
         url = input_buffer.get_text()
 
-        # Find the 'artist'
-        pattern = r"twitter\.com\/([a-zA-Z0-9_]+)\/"
-        match = re.search(pattern, url)
-        detected_artist = "???"
-        if match:
-            detected_artist = match.group(1)
-
         # Add new StitchesObject to the store
-        stitches_obj = StitchesObject(url=url, artist=detected_artist)
+        stitches_obj = StitchesObject(url=url)
         self.model.append(stitches_obj)
         len = input_buffer.get_length()
         input_buffer.delete_text(0, len)
@@ -145,15 +194,7 @@ class StitchesWindow(Adw.ApplicationWindow):
         # Disable button when nothing in text field
         #self.sidebar_entry.set_icon_sensitive(1, True)
         self.update_content(self.sidebar_listview)
-
-    def get_artist_from_url(self, url):
-        # Find the 'artist'
-        pattern = r"twitter\.com\/([a-zA-Z0-9_]+)\/"
-        match = re.search(pattern, url)
-        detected_artist = "???"
-        if match:
-            detected_artist = match.group(1)
-        return detected_artist
+        self.sidebar_entry.set_icon_from_gicon(Gtk.EntryIconPosition.SECONDARY, None)
 
     # TODO: create one for each service so a custom mechanism to grab an artist/url/etc
     def is_valid_url(self, url):
@@ -168,26 +209,19 @@ class StitchesWindow(Adw.ApplicationWindow):
     @Gtk.Template.Callback()
     def check_and_enable(self, entry):
         input_buffer = entry.get_buffer().get_text()
-        curr_style = self.sidebar_notifier_label.get_style_context()
 
         if self.is_valid_url(input_buffer):
-#            self.sidebar_entry.set_icon_sensitive(1, True)
-#            self.sidebar_notifier_label.set_text("Looks good!")
-#            curr_style.remove_class("error")
-#            curr_style.add_class("success")
-#            return
-            pass
+            self.sidebar_entry.set_icon_from_gicon(Gtk.EntryIconPosition.SECONDARY, Gio.Icon.new_for_string("face-smile-big"))
+            self.sidebar_entry.set_icon_sensitive(1, True)
+            return
 
-#        curr_style.remove_class("success")
-#        curr_style.add_class("error")
+        # Show icon if there is an invalid url, and remove icon if there is no text
+        if len(input_buffer) > 0:
+            self.sidebar_entry.set_icon_from_gicon(Gtk.EntryIconPosition.SECONDARY, Gio.Icon.new_for_string("face-crying"))
+        else:
+            self.sidebar_entry.set_icon_from_gicon(Gtk.EntryIconPosition.SECONDARY, None)
 
-#        if len(input_buffer) > 0:
-#            self.sidebar_notifier_label.set_text("Not valid url.")
-#        else:
-#            self.sidebar_notifier_label.set_text("")
-#
-#        self.sidebar_entry.set_icon_sensitive(1, False)
-        # TODO, indicator for invalid url
+        self.sidebar_entry.set_icon_sensitive(1, False)
 
     @Gtk.Template.Callback()
     def enter_submission_check(self, entry):
