@@ -135,6 +135,19 @@ template $StitchesWindow: Adw.ApplicationWindow {
                       apply => $update_model_url();
                     }
 
+                    Gtk.Entry stitch_file_location {
+                      primary-icon-sensitive: false;
+                      secondary-icon-sensitive: true;
+                      editable: false;
+                      // use by default
+                      secondary-icon-name: "list-add";
+                      // use when file exists (and then open that folder location)
+                      //secondary-icon-name: "emblem-download";
+
+                      /* Define the signals and their actions */
+                      icon-press => $stitch_file_location_click();
+                    }
+/*
                     Gtk.Box {
               //                      hexpand: true;
                       orientation: horizontal;
@@ -143,7 +156,7 @@ template $StitchesWindow: Adw.ApplicationWindow {
                       margin-bottom: 12;
                       spacing: 12;
 
-                      Gtk.Entry stitch_file_location {
+                      Adw.EntryRow stitch_file_location {
                         hexpand: true;
                         halign: baseline;
                         editable: false;
@@ -162,6 +175,7 @@ template $StitchesWindow: Adw.ApplicationWindow {
                         ]
                       }
                     }
+*/
 
                     // TODO: Use this section to capture specific parts of a clip that are
                     // important.

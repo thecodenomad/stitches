@@ -19,15 +19,25 @@
 
 import os
 import re
+import subprocess
 
 from gi.repository import Adw
 from gi.repository import Gtk, GObject, Gio
+
+from threading import Lock
 
 # 3rd party imports
 from yt_dlp import YoutubeDL
 
 BASE_DL_LOC = "$HOME/Videos/python"
 YT_DLP_OPTIONS = {"outtmpl": f"{BASE_DL_LOC}/%(title)s.%(ext)s"}
+
+BLOCKER = Lock()
+
+def open_folder(location):
+    print("This should open up a folder")
+    parent_folder = os.path.dirname(location)
+    subprocess.run(["xdg-open", parent_folder])
 
 
 def get_artist_from_url(url):
@@ -68,15 +78,25 @@ class StitchesObject(GObject.GObject):
 
         if not self._name:
             status_id = get_twitter_status_id(self._url)
-            self._name = f"{self._artist}_status_{status_id}"
+            self._name = f"status_{status_id}.mkv"
 
         if not self._location:
-            self._location = f"{BASE_DL_LOC}/{self._name}"
+            artist_dir = f"{BASE_DL_LOC}/{self._artist}"
+            artist_dir = os.path.expandvars(artist_dir)
+            if not os.path.exists(artist_dir):
+                os.mkdir(artist_dir)
+
+            self._location = f"{BASE_DL_LOC}/{self._artist}/{self._name}"
             self._location = os.path.expandvars(self._location)
 
-        print(f"The location: {self._location}")
-        print(f"The artist: {self._artist}")
+    def update_location(self):
+        self._location = f"{BASE_DL_LOC}/{self._artist}/{self._name}"
+        self._location = os.path.expandvars(self._location)
 
+        artist_dir = f"{BASE_DL_LOC}/{self._artist}"
+        artist_dir = os.path.expandvars(artist_dir)
+        if not os.path.exists(artist_dir):
+            os.mkdir(artist_dir)
 
     @GObject.Property(type=str)
     def name(self):
@@ -109,13 +129,13 @@ class StitchesWindow(Adw.ApplicationWindow):
     stitch_name_entry: Gtk.Entry = Gtk.Template.Child()
     stitch_artist_entry: Gtk.Entry = Gtk.Template.Child()
     stitch_link_entry: Gtk.Entry = Gtk.Template.Child()
-    stitch_download_button: Gtk.Button = Gtk.Template.Child()
+    # stitch_download_button: Gtk.Button = Gtk.Template.Child()
     stitches_toast: Adw.ToastOverlay = Gtk.Template.Child()
     stitch_video: Gtk.Video = Gtk.Template.Child()
 
     # Buttons
-    stitch_file_location = Gtk.Label = Gtk.Template.Child()
-    stitch_download_button = Gtk.Button = Gtk.Template.Child()
+    stitch_file_location = Gtk.Entry = Gtk.Template.Child()
+    # stitch_download_button = Gtk.Button = Gtk.Template.Child()
 
 
     def __init__(self, **kwargs):
@@ -155,6 +175,8 @@ class StitchesWindow(Adw.ApplicationWindow):
     def update_content(self, view, pos=None):
         model = view.get_model().get_selected_item()
         if not model:
+            print("Couldn't find model")
+            self.stitch_video.set_file(None)
             return
 
         self.stitch_name_entry.set_text(model.name)
@@ -165,41 +187,53 @@ class StitchesWindow(Adw.ApplicationWindow):
         #print(f"Location: {model.location}")
         self.stitch_file_location.set_text(model.name)
 
-        # Disable the download button if the file exists
-        if model.location:
-            self.stitch_download_button.set_sensitive(not os.path.exists(model.location))
+        print(f"Checking for folder existence: {model.location}")
 
         if os.path.exists(model.location):
+            print(f"Found video at: {model.location}")
             self.stitch_video.set_filename(model.location)
+            self.stitch_file_location.set_icon_from_icon_name(Gtk.EntryIconPosition.SECONDARY, "folder-download")
+        else:
+            print(f"Couldn't find video at: {model.location}")
+            self.stitch_file_location.set_icon_from_icon_name(Gtk.EntryIconPosition.SECONDARY, "list-add")
+            self.stitch_video.set_file(None)
 
 
     # NOTE: This decorator is required for .blp/.ui files to setup the connections
     @Gtk.Template.Callback()
     def add_new_url(self, entry, icon_pos=None):
-        if not self.sidebar_entry.get_icon_sensitive(1):
-            print(f"Button not enabled yet...")
-            return
 
         # capture the new url in entryfield
-        input_buffer = entry.get_buffer()
-        url = input_buffer.get_text()
+        #input_buffer = entry.get_buffer()
+        url = entry.get_text()
+
+        # Do nothing
+        if not self.is_valid_url(url):
+            return
 
         # Add new StitchesObject to the store
         stitches_obj = StitchesObject(url=url)
         self.model.append(stitches_obj)
-        len = input_buffer.get_length()
-        input_buffer.delete_text(0, len)
+        entry.set_text("")
+
         print(f"yay - url added: {url}")
+
+        selection_model = self.sidebar_listview.get_model()
+        # Make sure the entry made is what is focused/selected
+        _, stitch_pos = self.model.find(stitches_obj)
+        selection_model.select_item(stitch_pos, True)
 
         # Disable button when nothing in text field
         #self.sidebar_entry.set_icon_sensitive(1, True)
         self.update_content(self.sidebar_listview)
-        self.sidebar_entry.set_icon_from_gicon(Gtk.EntryIconPosition.SECONDARY, None)
+        #self.sidebar_entry.set_icon_from_icon_name(Gtk.EntryIconPosition.SECONDARY, None)
+
 
     # TODO: create one for each service so a custom mechanism to grab an artist/url/etc
     def is_valid_url(self, url):
+
         url_pattern = re.compile(r'https://(?:www\.)?(twitter\.com/([A-Za-z0-9_]+)/status/(\d+)|youtube\.com|rumble\.com)')
-        if url_pattern.search(url):
+        if url and url_pattern.search(url):
             print(f"Looks like a valid url: {url}: {url_pattern.search(url)}")
             return True
         print(f"Womp womp, invalid url: {url}: {url_pattern.search(url)}")
@@ -208,25 +242,25 @@ class StitchesWindow(Adw.ApplicationWindow):
 
     @Gtk.Template.Callback()
     def check_and_enable(self, entry):
-        input_buffer = entry.get_buffer().get_text()
+
+        input_buffer = entry.get_text()
 
         if self.is_valid_url(input_buffer):
-            self.sidebar_entry.set_icon_from_gicon(Gtk.EntryIconPosition.SECONDARY, Gio.Icon.new_for_string("face-smile-big"))
-            self.sidebar_entry.set_icon_sensitive(1, True)
+            self.sidebar_entry.set_icon_from_icon_name(Gtk.EntryIconPosition.SECONDARY, "face-smiling")
+            #self.sidebar_entry.set_icon_sensitive(1, True)
             return
 
         # Show icon if there is an invalid url, and remove icon if there is no text
         if len(input_buffer) > 0:
-            self.sidebar_entry.set_icon_from_gicon(Gtk.EntryIconPosition.SECONDARY, Gio.Icon.new_for_string("face-crying"))
+            self.sidebar_entry.set_icon_from_icon_name(Gtk.EntryIconPosition.SECONDARY, "face-crying")
         else:
             self.sidebar_entry.set_icon_from_gicon(Gtk.EntryIconPosition.SECONDARY, None)
 
-        self.sidebar_entry.set_icon_sensitive(1, False)
 
     @Gtk.Template.Callback()
     def enter_submission_check(self, entry):
 
-        input_buffer = entry.get_buffer().get_text()
+        input_buffer = entry.get_text()
         if len(input_buffer) == 0:
             print("You didn't enter anything...")
             return
@@ -252,6 +286,9 @@ class StitchesWindow(Adw.ApplicationWindow):
         # Readd item at the position
         self.model.insert(stitch_pos, stitch)
 
+        if stitch.location is not None:
+            self.stitch_video.set_filename(stitch.location)
+
 
     @Gtk.Template.Callback()
     def update_model_name(self, entry):
@@ -267,10 +304,18 @@ class StitchesWindow(Adw.ApplicationWindow):
         stitch = self.sidebar_listview.get_model().get_selected_item()
         exists, stitch_pos = self.model.find(stitch)
         stitch._name = buffer
+        stitch.update_location()
+
+        self.stitch_file_location.set_text(stitch.name)
+        #self.stitch_download_button.set_sensitive(not os.path.exists(stitch.location))
+
         self._update_selected_stitch(stitch, stitch_pos)
 
         # Now update the model at the position in the listview
         print(f"Model.name is currently set to: {stitch.name}")
+
+        # Url Entry should receive focus
+        #self.sidebar_entry.grab_focus_without_selecting()
 
 
     @Gtk.Template.Callback()
@@ -317,7 +362,7 @@ class StitchesWindow(Adw.ApplicationWindow):
         stitch._url = buffer
 
         # The artist should always match the url (maybe made this configurable in prefernces)
-        new_artist = self.get_artist_from_url(stitch.url)
+        new_artist = get_artist_from_url(stitch.url)
         self.update_model_artist(entry, artist=new_artist)
 
         self._update_selected_stitch(stitch, stitch_pos)
@@ -326,25 +371,7 @@ class StitchesWindow(Adw.ApplicationWindow):
         print(f"Model.url is currently set to: {stitch.url}")
 
 
-#    @Gtk.Template.Callback()
-    def update_model_file_location(self, entry):
-        buffer = entry.get_text()
-
-        # Don't do anything until we actually have a value to change to'
-        if len(buffer) == 0 and not self.is_valid_url(buffer):
-            return
-
-        # Get the selected model
-        stitch = self.sidebar_listview.get_model().get_selected_item()
-        exists, stitch_pos = self.model.find(stitch)
-        stitch._location = buffer
-        self._update_selected_stitch(stitch, stitch_pos)
-
-        # Now update the model at the position in the listview
-        print(f"Model.location is currently set to: {stitch.location}")
-
-
-#    @Gtk.Template.Callback()
+    #    @Gtk.Template.Callback()
     def save_settings(self):
         #self.settings.set_int("window-width", win_size.width)
         #self.settings.set_int("window-height", win_size.height)
@@ -352,25 +379,36 @@ class StitchesWindow(Adw.ApplicationWindow):
 
 
     @Gtk.Template.Callback()
-    def download_url(self, clicked_button):
-        print("Should attempt to download the url.")
+    def stitch_file_location_click(self, clicked_button, pos=None):
+
+        # Get the selected stitch
         stitch = self.sidebar_listview.get_model().get_selected_item()
+
+        # We already have the file, open up a folder location
+        if os.path.exists(stitch.location):
+            open_folder(stitch.location)
+            return
+
 
         print(f"Downloading: {stitch.url}")
 
+        # TODO: Catch exceptions and throw in a toast for debug
         # add yt-dlp call here
-        result = self.download_from_youtube(stitch.url, name=stitch.name)
+        result = self.download_from_youtube(stitch.url, name=stitch.name, artist=stitch.artist)
         print(f"Result: {result}")
+
+        # If it was downloaded, then change the icon to be open folder
+        self.stitch_file_location.set_icon_from_icon_name(Gtk.EntryIconPosition.SECONDARY, "folder-download")
 
 
     # Ref: https://pypi.org/project/yt-dlp/#embedding-examples
-    def download_from_youtube(self, url, name):
+    def download_from_youtube(self, url, name=None, artist=None):
 
         yt_dl_options = YT_DLP_OPTIONS
         if name:
             yt_dl_options = {
 #                "outtmpl": f"$HOME/Videos/python/{name}"
-                "outtmpl": f"/var/home/codenomad/Videos/python/{name}",
+                "outtmpl": f"/var/home/codenomad/Videos/python/{artist}/{name}",
                 "format": "best",
                 "merge_output_format": "mkv"
         }
