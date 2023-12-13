@@ -8,7 +8,8 @@ blueprint_compiler = find_program('blueprint-compiler')
 # The blueprint files to be converted
 blueprint_files = files(
     'view/window.blp',
-    'view/listitem.blp'
+    'view/listitem.blp',
+    'view/stitch_content.blp'
 )
 
 # The list of the converted .ui files to inject into the build
@@ -54,6 +55,8 @@ stitches_sources = [
   '__init__.py',
   'main.py',
   'view/window.py',
+  'view/stitch_content.py',
+  'common.py'
 ]
 
 install_data(stitches_sources, install_dir: moduledir)

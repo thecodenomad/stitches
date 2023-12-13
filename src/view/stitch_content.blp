@@ -3,84 +3,72 @@ using Adw 1;
 
 template $StitchContent:
 
-Adw.ToastOverlay {
+Adw.NavigationPage {
+    title: _('Video');
+    tag: 'content';
 
-  Gtk.Box content_box {
-    orientation: vertical;
-    homogeneous: true;
-    margin-top: 12;
-    margin-end: 12;
-    margin-bottom: 12;
-    margin-start: 12;
-    spacing: 12;
+    child: Adw.ToolbarView {
+      [top]
+      Adw.HeaderBar header_bar_content {}
 
-    Gtk.Video stitch_video {}
+      content:
 
-    Adw.Clamp {
+        Adw.ToastOverlay stitches_toast {
 
-      child: Gtk.Box {
-        orientation: vertical;
-        spacing: 12;
+          Gtk.Box content_box {
+            orientation: vertical;
+            homogeneous: true;
+            margin-top: 12;
+            margin-end: 12;
+            margin-bottom: 12;
+            margin-start: 12;
+            spacing: 12;
 
-        Adw.EntryRow stitch_name_entry {
-          title: 'Name';
-          activates-default: true;
-          show-apply-button: true;
-          apply => $update_model_name();
-        }
+            Gtk.Video stitch_video {}
 
-        Adw.EntryRow stitch_artist_entry {
-          title: 'Artist';
-          activates-default: true;
-          show-apply-button: true;
-          apply => $update_model_artist();
-        }
+            Adw.Clamp {
 
-        Adw.EntryRow stitch_link_entry {
-          title: 'URL';
-          activates-default: true;
-          show-apply-button: true;
-          apply => $update_model_url();
-        }
+              child: Gtk.Box {
+                orientation: vertical;
+                spacing: 12;
 
-        Gtk.Box {
-  //                      hexpand: true;
-          orientation: horizontal;
-          margin-top: 12;
-          margin-end: 12;
-          margin-bottom: 12;
-          spacing: 12;
+                Adw.EntryRow stitch_name_entry {
+                  title: 'Name';
+                  activates-default: true;
+                  show-apply-button: true;
+                  apply => $update_model_name();
+                }
 
-          Gtk.Entry stitch_file_location {
-            hexpand: true;
-            halign: baseline;
-            editable: false;
-            focus-on-click: false;
-            sensitive: false;
-          }
+                Adw.EntryRow stitch_artist_entry {
+                  title: 'Artist';
+                  activates-default: true;
+                  show-apply-button: true;
+                  apply => $update_model_artist();
+                }
 
-          Gtk.Button stitch_download_button {
-            halign: end;
-            sensitive: false;
-            clicked => $download_url();
-            icon-name: "folder-download";
-            tooltip-text: "Download";
-            styles [
-              "suggested-action"
-            ]
-          }
-        }
+                Adw.EntryRow stitch_link_entry {
+                  title: 'URL';
+                  activates-default: true;
+                  show-apply-button: true;
+                  apply => $update_model_url();
+                }
 
-        // TODO: Use this section to capture specific parts of a clip that are
-        // important.
+                Gtk.Entry stitch_file_location {
+                  primary-icon-sensitive: false;
+                  secondary-icon-sensitive: true;
+                  editable: false;
+                  // use by default
+                  secondary-icon-name: "document-save";
+                  // use when file exists (and then open that folder location)
+                  //secondary-icon-name: "emblem-download";
 
-        // TODO: Allow for the user to be able to export these sections while maintaining
-        // the proper exif data.
+                  /* Define the signals and their actions */
+                  icon-press => $stitch_file_location_click();
+                }
 
-        Gtk.Label {
-          label: 'Bookmarks';
-        }
-      };
-    } // End of Clamp
-  } // End of Content Box
-} // End of Toast
+              };
+            } // End of Clamp
+          } // End of Content Box
+        }; // End of Toast
+    }; // End of Toolbar view
+  } // end of Content Navication Child)
