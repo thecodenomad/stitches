@@ -1,7 +1,11 @@
+import json
+import os
 import re
 import subprocess
 
 from gi.repository import Gtk
+
+from stitches import constants
 
 def open_folder(location):
     """Open a given location with the OS"""
@@ -38,19 +42,15 @@ def get_twitter_status_id(url):
 
 # TODO: create one for each service so a custom mechanism to grab an artist/url/etc
 def is_valid_url(url):
-
     url_pattern = re.compile(r'https://(?:www\.)?(twitter\.com/([A-Za-z0-9_]+)/status/(\d+)|youtube\.com|rumble\.com)')
     if url and url_pattern.search(url):
-        print(f"Looks like a valid url: {url}: {url_pattern.search(url)}")
         return True
-    print(f"Womp womp, invalid url: {url}: {url_pattern.search(url)}")
     return False
 
 
 def update_secondary_icon(entry, icon_name):
     try:
-        entry.set_icon_from_icon_name(Gtk.EntryIconPosition.SECONDARY, icon_name)
-        print(f"Icon has been set: {icon_name}")
+        entry.set_icon_from_icon_name(constants.DEFAULT_ENTRY_ICON_POS, icon_name)
     except Exception as e:
         print(f"Hit an exception: {e}")
 

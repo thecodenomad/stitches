@@ -56,7 +56,8 @@ stitches_sources = [
   'main.py',
   'view/window.py',
   'view/stitch_content.py',
-  'common.py'
+  'common.py',
+  'constants.py'
 ]
 
 install_data(stitches_sources, install_dir: moduledir)

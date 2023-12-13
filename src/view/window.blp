@@ -21,11 +21,21 @@ template $StitchesWindow: Adw.ApplicationWindow {
           /* Sidebar Menu */
           Adw.ToolbarView {
             [top]
+
             Adw.HeaderBar header_bar {
               [start]
-              MenuButton {
+              MenuButton sidebar_menu {
                 icon-name: 'open-menu-symbolic';
                 menu-model: primary_menu;
+              }
+
+              [end]
+              Button sidebar_save_button {
+                icon-name: 'document-save';
+                // TODO: It sure would be nice to bind this to a property and have it work...
+                sensitive: false;
+//                sensitive: bind template.changes_made as <bool>;
+                clicked => $save_list();
               }
             }
 

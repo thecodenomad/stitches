@@ -4,13 +4,14 @@ import re
 from gi.repository import Adw
 from gi.repository import Gtk, GObject, Gio
 
-from stitches import common
+from stitches import common, constants
+from threading import Thread
+
 
 # 3rd party imports
 from yt_dlp import YoutubeDL
 
-BASE_DL_LOC = "$HOME/Videos/python"
-YT_DLP_OPTIONS = {"outtmpl": f"{BASE_DL_LOC}/%(title)s.%(ext)s"}
+YT_DLP_OPTIONS = {"outtmpl": f"{constants.BASE_DL_LOC}/%(title)s.%(ext)s"}
 
 
 
@@ -25,10 +26,15 @@ class StitchContent(Adw.NavigationPage):
     stitch_video: Gtk.Video = Gtk.Template.Child()
     stitches_toast: Adw.ToastOverlay = Gtk.Template.Child()
 
-    def __init__(self, stitch_listview, model, **kwargs):
+    def __init__(self, stitch_listview=None, model=None, **kwargs):
         super().__init__(**kwargs)
         self.stitch_listview = stitch_listview
         self.model = model
+
+        # Whenever the listview changes, update the content
+        if self.stitch_listview:
+            self.stitch_listview.connect("activate", self.update_content)
+
 
     @Gtk.Template.Callback()
     def update_model_name(self, entry):
@@ -46,18 +52,16 @@ class StitchContent(Adw.NavigationPage):
         stitch._name = buffer
         stitch.update_location()
 
+        # BASEDIR/{artist}/{name} -- TODO: Make this configurable
         self.stitch_file_location.set_text(f"{stitch.artist}/{stitch.name}")
-        #self.stitch_download_button.set_sensitive(not os.path.exists(stitch.location))
 
-        self._update_selected_stitch(stitch, stitch_pos)
+        icon_name = "document-save"
+        if os.path.exists(stitch.location):
+            icon_name = "folder-download"
+        common.update_secondary_icon(self.stitch_file_location, icon_name)
 
         # Now update the model at the position in the listview
-        # print(f"Model.name is currently set to: {stitch.artist}/{stitch.name}")
-
-        # Url Entry should receive focus
-        #self.sidebar_entry.grab_focus_without_selecting()
-        if not os.path.exists(stitch.location):
-            self.update_secondary_icon(self.stitch_file_location, "document-save")
+        self._update_selected_stitch(stitch, stitch_pos)
 
 
     @Gtk.Template.Callback()
@@ -120,73 +124,97 @@ class StitchContent(Adw.NavigationPage):
 
         # We already have the file, open up a folder location
         if os.path.exists(stitch.location):
-            open_folder(stitch.location)
+            common.open_folder(stitch.location)
             return
 
         # TODO: Catch exceptions and throw in a toast for debug
         # add yt-dlp call here
-        result = self.download_from_youtube(stitch.url, name=stitch.name, artist=stitch.artist)
+        result = self.download_from_youtube(stitch)
 
         # If it was downloaded, then change the icon to be open folder
-        # self.stitch_file_location.set_icon_from_icon_name(Gtk.EntryIconPosition.SECONDARY, "folder-download")
-        self.update_secondary_icon(self.stitch_file_location, "folder-download")
+        common.update_secondary_icon(self.stitch_file_location, "folder-download")
 
-    def update_secondary_icon(self, entry, icon_name):
+
+    def _download_wrapper(self, stitch, yt_dl_options):
+
+        # TODO: Turn this into a threadpool or something
+        # TODO: Do a size check, files can get crazy big
+
+        message = Adw.Toast.new(f"{stitch.name or stitch.url} has been downloaded")
         try:
-            entry.set_icon_from_icon_name(Gtk.EntryIconPosition.SECONDARY, icon_name)
-            print(f"Icon has been set: {icon_name}")
+            with YoutubeDL(yt_dl_options) as ydl:
+                ydl.download([stitch.url])
+
+            # If the currently selected stitch is this stitch then update the video
+            if self.stitch_listview.get_model().get_selected_item() == stitch:
+                print("Currently selected item is the stitch we are downloading vid for")
+                self.stitch_video.set_filename(yt_dl_options["outtmpl"]["default"])
+            else:
+                print("Download isn't occuring on currently selected stitch")
+                self.stitch_video.set_filename(None)
+
         except Exception as e:
-            print("Failed updating icon")
-            print(e)
+            message = Adw.Toast.new(f"Failed downloading {stitch.url}: {e}")
+            print(f"Failed downloading: {stitch.url}: {e}")
+
+        # Send a toast to show downloded
+        self.stitches_toast.add_toast(message)
+
+
 
     # Ref: https://pypi.org/project/yt-dlp/#embedding-examples
-    def download_from_youtube(self, url, name=None, artist=None):
+    def download_from_youtube(self, stitch):
 
         yt_dl_options = YT_DLP_OPTIONS
-        if name:
+        if stitch.name:
             yt_dl_options = {
 #                "outtmpl": f"$HOME/Videos/python/{name}"
-                "outtmpl": f"/var/home/codenomad/Videos/python/{artist}/{name}",
+                "outtmpl": f"/var/home/codenomad/Videos/python/{stitch.artist}/{stitch.name}",
                 "format": "best",
                 "merge_output_format": "mkv"
         }
 
         with YoutubeDL(yt_dl_options) as ydl:
-            download = ydl.download([url])
-
-        message = Adw.Toast.new(f"{name or url} has been downloaded")
-        self.stitches_toast.add_toast(message)
-        self.stitch_video.set_filename(yt_dl_options["outtmpl"]["default"])
+            thread = Thread(target=self._download_wrapper, args=[stitch, yt_dl_options], daemon=False)
+            thread.start()
+            # TODO: Any clean up that needs to occur here?
 
         print(f'Filename: {yt_dl_options["outtmpl"]["default"]}')
 
 
-    def update_content(self):
-        print("Updating content")
+    def send_toast(self, message):
+        self.stitches_toast.add_toast(Adw.Toast.new(message))
 
+
+    def update_content(self, *args, **kwargs):
+
+        # Get the SelectionModel
         model = self.stitch_listview.get_model().get_selected_item()
         if not model:
             print(f"Couldn't find model in: {self.stitch_listview}")
             self.stitch_video.set_file(None)
             return
 
-        print("Model is not null")
-        print(f"Name: {model.name} - Artist: {model.artist} - URL: {model.url}")
-
+        # Update all Stitch Content EntryRows and Entry with model values
         self.stitch_name_entry.set_text(model.name)
         self.stitch_artist_entry.set_text(model.artist)
         self.stitch_link_entry.set_text(model.url)
         self.stitch_file_location.set_text(f"{model.artist}/{model.name}")
 
-        print(f"Checking for folder existence: {model.location}")
+        icon_name = "document-save"
+        # TODO: Have a default image for this at least...
+        self.stitch_video.set_file(None)
+
+        # Load the video if it exists
         if os.path.exists(model.location):
+            icon_name = "folder-download"
             self.stitch_video.set_filename(model.location)
-            # self.stitch_file_location.set_icon_from_icon_name(Gtk.EntryIconPosition.SECONDARY, "folder-download")
-            self.update_secondary_icon(self.stitch_file_location, "folder-download")
-        else:
-            # self.stitch_file_location.set_icon_from_icon_name(Gtk.EntryIconPosition.SECONDARY, "document-save")
-            self.update_secondary_icon(self.stitch_file_location, "document-save")
-            self.stitch_video.set_file(None)
+
+        # Update the icon. If the file is downloaded, this button should just take the
+        # user to the location of the file.
+        # TODO: Configurable, it could do an xdg-open ./filename
+        common.update_secondary_icon(self.stitch_file_location, icon_name)
+
 
     def _update_selected_stitch(self, stitch, stitch_pos):
         """Updates the selected item in the listview by deleting and replacing the item in the
@@ -204,7 +232,4 @@ class StitchContent(Adw.NavigationPage):
 
         # Readd item at the position
         self.model.insert(stitch_pos, stitch)
-
-        if stitch.location is not None:
-            self.stitch_video.set_filename(stitch.location)
 

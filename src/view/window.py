@@ -17,6 +17,7 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+import json
 import os
 import re
 
@@ -27,11 +28,8 @@ from gi.repository import Gtk, GObject, Gio
 from threading import Lock
 
 # Stitch Modules
-from stitches import common
+from stitches import common, constants
 from stitches.stitch_content import StitchContent
-
-BASE_DL_LOC = "$HOME/Videos/python"
-
 
 class StitchesObject(GObject.GObject):
     __gtype_name__ = 'StitchesObject'
@@ -54,19 +52,19 @@ class StitchesObject(GObject.GObject):
             self._name = f"status_{status_id}.mkv"
 
         if not self._location:
-            artist_dir = f"{BASE_DL_LOC}/{self._artist}"
+            artist_dir = f"{constants.BASE_DL_LOC}/{self._artist}"
             artist_dir = os.path.expandvars(artist_dir)
             if not os.path.exists(artist_dir):
                 os.mkdir(artist_dir)
 
-            self._location = f"{BASE_DL_LOC}/{self._artist}/{self._name}"
+            self._location = f"{constants.BASE_DL_LOC}/{self._artist}/{self._name}"
             self._location = os.path.expandvars(self._location)
 
     def update_location(self):
-        self._location = f"{BASE_DL_LOC}/{self._artist}/{self._name}"
+        self._location = f"{constants.BASE_DL_LOC}/{self._artist}/{self._name}"
         self._location = os.path.expandvars(self._location)
 
-        artist_dir = f"{BASE_DL_LOC}/{self._artist}"
+        artist_dir = f"{constants.BASE_DL_LOC}/{self._artist}"
         artist_dir = os.path.expandvars(artist_dir)
         if not os.path.exists(artist_dir):
             os.mkdir(artist_dir)
@@ -93,16 +91,25 @@ class StitchesWindow(Adw.ApplicationWindow):
     __gtype_name__ = 'StitchesWindow'
 
     sidebar: Gtk.Box = Gtk.Template.Child()
-    # sidebar_listview: Gtk.ListView = Gtk.Template.Child()
+
+    # The entry field for URLs
     sidebar_entry: Gtk.Entry = Gtk.Template.Child()
-    # sidebar_notifier_label: Gtk.Label = Gtk.Template.Child()
+    #sidebar_header: Adw.HeaderBar = Gtk.Template.Child()
+    sidebar_save_button: Gtk.Button = Gtk.Template.Child()
+
+    # The container for the list
     sidebar_window: Gtk.ScrolledWindow = Gtk.Template.Child()
 
+    # The container page for the content panel
+    # TODO: 'Add ability to embed exif data either on download, or after. Is there a way to
+    #        embed a diff?
     adw_navigation_split_view: Adw.NavigationSplitView = Gtk.Template.Child()
 
-    # Content
+    # Main content panel that shows the individual stitch and it's details
     stitch_content: StitchContent = Gtk.Template.Child()
 
+
+    # TODO: Add logging to the config folder
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -128,45 +135,83 @@ class StitchesWindow(Adw.ApplicationWindow):
         self.sidebar_listview = Gtk.ListView(model=self.selection, factory=self.factory)
         self.sidebar_listview.props.show_separators = True
         self.sidebar_listview.props.single_click_activate = True
-        #self.sidebar_listview.connect("activate", self.stitch_content.update_content)
+
+        # Add headerbar
+        #StitchSidebarHeader(self.model)
+        #print("Instantiated fine...\n\n\n")
+        #self.sidebar_header = StitchSidebarHeader(self.model)
+
+        # Set listview
+        self.sidebar_window.set_child(self.sidebar_listview)
 
         # Add main content page
-        #self.stitch_content = StitchContent(self.sidebar_listview)
         print("Adding Stitch Content")
         self.stitch_content = StitchContent(self.sidebar_listview, self.model)
         self.adw_navigation_split_view.set_content(self.stitch_content)
 
-        print("After instantiation")
-        #self.stitch_content.stitch_listview = self.sidebar_listview
-        print("Content has been set")
+        # Entry on the left should only accept URLs.
+        self.sidebar_entry.set_input_purpose(Gtk.InputPurpose.URL)
 
-        # Set listview
-        #print(f"The attrs sidebar_window: {self.sidebar_window.__dict__}\n\n")
-        #print(f"The type content: {type(self.stitch_content)}")
-        print("Appending listview")
-        self.sidebar_window.set_child(self.sidebar_listview)
-        print("After appending")
-
+        # TODO: Add ability to load from JSON
         # Add dummy data
         # self.model.append(temp_object_one)
         # self.stitch_content.update_content()
 
+        #self.sidebar_save_button.connect("activate", self.save_list)
+
+    def toggle_changes(self, *args, **kwargs):
+        # TODO: Limit this when it's just a sorting change
+        print("Changes have been made, enable save button")
+        self.sidebar_save_button.set_sensitive(True)
 
     #    @Gtk.Template.Callback()
     def save_settings(self):
+        # TODO: Add preferences panel:
+        #       - Folder location to store stitches in.
+        #       - Ability to save current list into a .json / .yaml file
+        #       - Ability to load current list from .json / .yaml file
         #self.settings.set_int("window-width", win_size.width)
         #self.settings.set_int("window-height", win_size.height)
         print("yay - settings saved (Not Implimented yet")
 
 
-#    def update_content(self):
-#        # Get the selected object
-#        self.stitch_content.update_content()
+    @Gtk.Template.Callback()
+    def save_list(self, button):
+        """ Saves the currently activated list """
+
+        # Iterate over the store and save each item to dict for export to json
+        out_doc = {}
+
+        # Want O(1) lookup
+        for stitch in self.model:
+            out_doc[stitch.url] =  {
+                "name": stitch.name,
+                "artist": stitch.artist,
+                "url": stitch.url,
+                "location": stitch.location
+            }
+
+        filepath = f"{constants.BASE_DL_LOC}/{constants.DEFAULT_DB_FILENAME}"
+
+        # Expand OS vars
+        filepath = os.path.expandvars(filepath)
+
+        try:
+            with open(filepath, "w") as f:
+                json.dump(out_doc, f)
+            self.stitch_content.send_toast(f"Saved DB: {filepath}")
+
+            # Reset after save
+            self.sidebar_save_button.set_sensitive(False)
+        except Exception as e:
+            self.stitch_content.send_toast(f"Failed to save DB: {e}")
+            self.sidebar_save_button.set_sensitive(True)
 
 
     # NOTE: This decorator is required for .blp/.ui files to setup the connections
     @Gtk.Template.Callback()
     def add_new_url(self, entry, icon_pos=None):
+        """ Bound to the click action on the Gtk.EntryIconPosition.SECONDARY """
 
         # capture the new url in entryfield
         url = entry.get_text()
@@ -191,35 +236,34 @@ class StitchesWindow(Adw.ApplicationWindow):
 
         # Remove the icon after the file was added
         common.update_secondary_icon(self.sidebar_entry, None)
+        self.sidebar_save_button.set_sensitive(True)
 
 
     @Gtk.Template.Callback()
     def check_and_enable(self, entry):
-
+        """ Called whenever there is a change in the Sidebar Entry """
         input_buffer = entry.get_text()
 
+        # Default to no behavior
+        icon_to_set = None
         if common.is_valid_url(input_buffer):
-            #self.sidebar_entry.set_icon_from_icon_name(Gtk.EntryIconPosition.SECONDARY, "document-save")
-            #self.sidebar_entry.set_icon_sensitive(1, True)
-            common.update_secondary_icon(self.sidebar_entry, "document-save")
-            return
+            icon_to_set = "document-save"
+            self.sidebar_entry.set_icon_sensitive(Gtk.EntryIconPosition.SECONDARY, True)
+        elif len(input_buffer) > 0:
+            icon_to_set = "face-cryping"
 
-        # Show icon if there is an invalid url, and remove icon if there is no text
-        if len(input_buffer) > 0:
-            #self.sidebar_entry.set_icon_from_icon_name(Gtk.EntryIconPosition.SECONDARY, "face-crying")
-            common.update_secondary_icon(self.sidebar_entry, "face-crying")
-        else:
-            #self.sidebar_entry.set_icon_from_gicon(Gtk.EntryIconPosition.SECONDARY, None)
-            common.update_secondary_icon(self.sidebar_entry, None)
+        self.sidebar_entry.set_icon_sensitive(Gtk.EntryIconPosition.SECONDARY, False)
+        common.update_secondary_icon(self.sidebar_entry, icon_to_set)
+
+
 
     @Gtk.Template.Callback()
     def enter_submission_check(self, entry):
-
+        """ Called when user hits enter. """
         input_buffer = entry.get_text()
         if len(input_buffer) == 0:
             print("You didn't enter anything...")
             return
 
-        print(f"Somebody hit enter with:\t{input_buffer}")
         self.add_new_url(entry)
 
