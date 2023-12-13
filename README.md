@@ -1,6 +1,6 @@
 # stitches
 
-![screenshot]()
+![screenshot](screenshots/stitches_screenshot.png)
 
 This is a basic frontend for grabbing clips from youtube, rumble, or X (twitter). It 
 is meant to be a way of grabbing multiple clips for use in meta-content creation.
