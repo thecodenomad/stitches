@@ -20,6 +20,8 @@
 import os
 import re
 import subprocess
+import traceback
+
 
 from gi.repository import Adw
 from gi.repository import Gtk, GObject, Gio
@@ -34,14 +36,19 @@ YT_DLP_OPTIONS = {"outtmpl": f"{BASE_DL_LOC}/%(title)s.%(ext)s"}
 
 BLOCKER = Lock()
 
+
 def open_folder(location):
-    print("This should open up a folder")
+    """Open a given location with the OS"""
+
+    # TODO: Only works on Linux, need to use 'open' for MacOS, who knows what for Windoze
     parent_folder = os.path.dirname(location)
     subprocess.run(["xdg-open", parent_folder])
 
 
 def get_artist_from_url(url):
-    # Find the 'artist'
+    """Retrieves a username or artist given a url"""
+
+    # Support for Twitter
     pattern = r"twitter\.com\/([a-zA-Z0-9_]+)\/"
     match = re.search(pattern, url)
     detected_artist = "???"
@@ -49,8 +56,11 @@ def get_artist_from_url(url):
         detected_artist = match.group(1)
     return detected_artist
 
+    # TODO: Support for Youtube and rumble needed
+
+
 def get_twitter_status_id(url):
-    # Find the id of a post
+    """Retrieves the status ID for a given tweet"""
 
     pattern = re.compile(r"(?<=status/)\d+")
     match = re.search(pattern, url)
@@ -171,6 +181,13 @@ class StitchesWindow(Adw.ApplicationWindow):
         # self.model.append(temp_object_one)
         self.update_content(self.sidebar_listview)
 
+    def update_secondary_icon(self, entry, icon_name):
+        try:
+            entry.set_icon_from_icon_name(Gtk.EntryIconPosition.SECONDARY, icon_name)
+            print(f"Icon has been set: {icon_name}")
+        except Exception as e:
+            pass
+
 
     def update_content(self, view, pos=None):
         model = view.get_model().get_selected_item()
@@ -185,17 +202,17 @@ class StitchesWindow(Adw.ApplicationWindow):
 
         # Update the location of the file
         #print(f"Location: {model.location}")
-        self.stitch_file_location.set_text(model.name)
+        self.stitch_file_location.set_text(f"{model.artist}/{model.name}")
 
         print(f"Checking for folder existence: {model.location}")
 
         if os.path.exists(model.location):
-            print(f"Found video at: {model.location}")
             self.stitch_video.set_filename(model.location)
-            self.stitch_file_location.set_icon_from_icon_name(Gtk.EntryIconPosition.SECONDARY, "folder-download")
+            # self.stitch_file_location.set_icon_from_icon_name(Gtk.EntryIconPosition.SECONDARY, "folder-download")
+            self.update_secondary_icon(self.stitch_file_location, "folder-download")
         else:
-            print(f"Couldn't find video at: {model.location}")
-            self.stitch_file_location.set_icon_from_icon_name(Gtk.EntryIconPosition.SECONDARY, "list-add")
+            # self.stitch_file_location.set_icon_from_icon_name(Gtk.EntryIconPosition.SECONDARY, "document-save")
+            self.update_secondary_icon(self.stitch_file_location, "document-save")
             self.stitch_video.set_file(None)
 
 
@@ -246,16 +263,18 @@ class StitchesWindow(Adw.ApplicationWindow):
         input_buffer = entry.get_text()
 
         if self.is_valid_url(input_buffer):
-            self.sidebar_entry.set_icon_from_icon_name(Gtk.EntryIconPosition.SECONDARY, "face-smiling")
+            #self.sidebar_entry.set_icon_from_icon_name(Gtk.EntryIconPosition.SECONDARY, "document-save")
             #self.sidebar_entry.set_icon_sensitive(1, True)
+            self.update_secondary_icon(self.sidebar_entry, "document-save")
             return
 
         # Show icon if there is an invalid url, and remove icon if there is no text
         if len(input_buffer) > 0:
-            self.sidebar_entry.set_icon_from_icon_name(Gtk.EntryIconPosition.SECONDARY, "face-crying")
+            #self.sidebar_entry.set_icon_from_icon_name(Gtk.EntryIconPosition.SECONDARY, "face-crying")
+            self.update_secondary_icon(self.sidebar_entry, "face-crying")
         else:
-            self.sidebar_entry.set_icon_from_gicon(Gtk.EntryIconPosition.SECONDARY, None)
-
+            #self.sidebar_entry.set_icon_from_gicon(Gtk.EntryIconPosition.SECONDARY, None)
+            self.update_secondary_icon(self.sidebar_entry, None)
 
     @Gtk.Template.Callback()
     def enter_submission_check(self, entry):
@@ -306,16 +325,18 @@ class StitchesWindow(Adw.ApplicationWindow):
         stitch._name = buffer
         stitch.update_location()
 
-        self.stitch_file_location.set_text(stitch.name)
+        self.stitch_file_location.set_text(f"{stitch.artist}/{stitch.name}")
         #self.stitch_download_button.set_sensitive(not os.path.exists(stitch.location))
 
         self._update_selected_stitch(stitch, stitch_pos)
 
         # Now update the model at the position in the listview
-        print(f"Model.name is currently set to: {stitch.name}")
+        # print(f"Model.name is currently set to: {stitch.artist}/{stitch.name}")
 
         # Url Entry should receive focus
         #self.sidebar_entry.grab_focus_without_selecting()
+        if not os.path.exists(stitch.location):
+            self.update_secondary_icon(self.stitch_file_location, "document-save")
 
 
     @Gtk.Template.Callback()
@@ -364,7 +385,6 @@ class StitchesWindow(Adw.ApplicationWindow):
         # The artist should always match the url (maybe made this configurable in prefernces)
         new_artist = get_artist_from_url(stitch.url)
         self.update_model_artist(entry, artist=new_artist)
-
         self._update_selected_stitch(stitch, stitch_pos)
 
         # Now update the model at the position in the listview
@@ -389,16 +409,13 @@ class StitchesWindow(Adw.ApplicationWindow):
             open_folder(stitch.location)
             return
 
-
-        print(f"Downloading: {stitch.url}")
-
         # TODO: Catch exceptions and throw in a toast for debug
         # add yt-dlp call here
         result = self.download_from_youtube(stitch.url, name=stitch.name, artist=stitch.artist)
-        print(f"Result: {result}")
 
         # If it was downloaded, then change the icon to be open folder
-        self.stitch_file_location.set_icon_from_icon_name(Gtk.EntryIconPosition.SECONDARY, "folder-download")
+        # self.stitch_file_location.set_icon_from_icon_name(Gtk.EntryIconPosition.SECONDARY, "folder-download")
+        self.update_secondary_icon(self.stitch_file_location, "folder-download")
 
 
     # Ref: https://pypi.org/project/yt-dlp/#embedding-examples
