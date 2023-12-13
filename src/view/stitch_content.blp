@@ -1,0 +1,74 @@
+using Gtk 4.0;
+using Adw 1;
+
+template $StitchContent:
+
+Adw.NavigationPage {
+    title: _('Video');
+    tag: 'content';
+
+    child: Adw.ToolbarView {
+      [top]
+      Adw.HeaderBar header_bar_content {}
+
+      content:
+
+        Adw.ToastOverlay stitches_toast {
+
+          Gtk.Box content_box {
+            orientation: vertical;
+            homogeneous: true;
+            margin-top: 12;
+            margin-end: 12;
+            margin-bottom: 12;
+            margin-start: 12;
+            spacing: 12;
+
+            Gtk.Video stitch_video {}
+
+            Adw.Clamp {
+
+              child: Gtk.Box {
+                orientation: vertical;
+                spacing: 12;
+
+                Adw.EntryRow stitch_name_entry {
+                  title: 'Name';
+                  activates-default: true;
+                  show-apply-button: true;
+                  apply => $update_model_name();
+                }
+
+                Adw.EntryRow stitch_artist_entry {
+                  title: 'Artist';
+                  activates-default: true;
+                  show-apply-button: true;
+                  apply => $update_model_artist();
+                }
+
+                Adw.EntryRow stitch_link_entry {
+                  title: 'URL';
+                  activates-default: true;
+                  show-apply-button: true;
+                  apply => $update_model_url();
+                }
+
+                Gtk.Entry stitch_file_location {
+                  primary-icon-sensitive: false;
+                  secondary-icon-sensitive: true;
+                  editable: false;
+                  // use by default
+                  secondary-icon-name: "document-save";
+                  // use when file exists (and then open that folder location)
+                  //secondary-icon-name: "emblem-download";
+
+                  /* Define the signals and their actions */
+                  icon-press => $stitch_file_location_click();
+                }
+
+              };
+            } // End of Clamp
+          } // End of Content Box
+        }; // End of Toast
+    }; // End of Toolbar view
+  } // end of Content Navication Child)

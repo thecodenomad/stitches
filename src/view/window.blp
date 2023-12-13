@@ -8,191 +8,87 @@ template $StitchesWindow: Adw.ApplicationWindow {
   width-request: 1024;
   height-request: 640;
 
-  /* TODO: Need to figure out for mobile support
-  Adw.Breakpoint {
-    condition ('max-width: 400')
-
-    setters {
-      adw_navigation_split_view.collapsed: true;
-    }
-  }
-*/
-
-  content: Adw.ToastOverlay  {
+  content:
+  Adw.ToastOverlay  {
     Adw.NavigationSplitView adw_navigation_split_view {
-      sidebar: Adw.NavigationPage {
-        width-request: 300;
-        title: _('Stiches');
+      sidebar:
+        Adw.NavigationPage {
+          width-request: 300;
+          title: _('Stitches');
 
-        child:
+          child:
 
-        /* Sidebar Menu */
-        Adw.ToolbarView {
-          [top]
-          Adw.HeaderBar header_bar {
-            [start]
-            MenuButton {
-              icon-name: 'open-menu-symbolic';
-              menu-model: primary_menu;
+          /* Sidebar Menu */
+          Adw.ToolbarView {
+            [top]
+
+            Adw.HeaderBar header_bar {
+              [start]
+              MenuButton sidebar_menu {
+                icon-name: 'open-menu-symbolic';
+                menu-model: primary_menu;
+              }
+
+              [end]
+              Button sidebar_save_button {
+                icon-name: 'document-save';
+                // TODO: It sure would be nice to bind this to a property and have it work...
+                sensitive: false;
+//                sensitive: bind template.changes_made as <bool>;
+                clicked => $save_list();
+              }
             }
-          }
 
-          content:
-            /* Sidebar Content Start */
-            Gtk.Box {
-              orientation: vertical;
-              spacing: 12;
-              margin-top: 12;
-              margin-end: 12;
-              margin-bottom: 12;
-              margin-start: 12;
-              vexpand: true;
-              hexpand: true;
-
-
-              /* Entry Widget */
-              Gtk.Box sidebar {
-                orientation: vertical;
-                spacing: 12;
-
-                /* TODO: Figure out how to disable the icon when no text in entry */
-                Gtk.Entry sidebar_entry {
-                  primary-icon-sensitive: false;
-                  secondary-icon-sensitive: true;
-
-                  placeholder-text: "Enter a url...";
-                  //secondary-icon-name: "list-add-symbolic";
-
-                  /* Define the signals and their actions */
-                  icon-press => $add_new_url();
-                  changed => $check_and_enable();
-                  activate => $enter_submission_check();
-                }
-              } /* End of Entry Widget */
-
-              /* List View Container */
+            content:
+              /* Sidebar Content Start */
               Gtk.Box {
                 orientation: vertical;
-                vexpand: true;
-                Gtk.ScrolledWindow  {
-                  vexpand: true;
-                  Gtk.Box sidebar_window {}
-                }
-              } /* End of List View Container */
-
-            }; /* End of Sidebar Content */
-
-        }; /* End of Sidebar Menu Content */
-
-      };
-
-      content: Adw.NavigationPage {
-        title: _('Video');
-        tag: 'content';
-
-        child: Adw.ToolbarView {
-          [top]
-          Adw.HeaderBar header_bar_content {}
-
-          content:
-            Adw.ToastOverlay stitches_toast {
-
-              Gtk.Box content_box {
-                orientation: vertical;
-                homogeneous: true;
+                spacing: 12;
                 margin-top: 12;
                 margin-end: 12;
                 margin-bottom: 12;
                 margin-start: 12;
-                spacing: 12;
+                vexpand: true;
+                hexpand: true;
 
-                Gtk.Video stitch_video {}
 
-                Adw.Clamp {
+                /* Entry Widget */
+                Gtk.Box sidebar {
+                  orientation: vertical;
+                  spacing: 12;
 
-                  child: Gtk.Box {
-                    orientation: vertical;
-                    spacing: 12;
+                  /* TODO: Figure out how to disable the icon when no text in entry */
+                  Gtk.Entry sidebar_entry {
+                    primary-icon-sensitive: false;
+                    secondary-icon-sensitive: true;
 
-                    Adw.EntryRow stitch_name_entry {
-                      title: 'Name';
-                      activates-default: true;
-                      show-apply-button: true;
-                      apply => $update_model_name();
-                    }
+                    placeholder-text: "Enter a url...";
+                    //secondary-icon-name: "list-add-symbolic";
 
-                    Adw.EntryRow stitch_artist_entry {
-                      title: 'Artist';
-                      activates-default: true;
-                      show-apply-button: true;
-                      apply => $update_model_artist();
-                    }
+                    /* Define the signals and their actions */
+                    icon-press => $add_new_url();
+                    changed => $check_and_enable();
+                    activate => $enter_submission_check();
+                  }
+                } /* End of Entry Widget */
 
-                    Adw.EntryRow stitch_link_entry {
-                      title: 'URL';
-                      activates-default: true;
-                      show-apply-button: true;
-                      apply => $update_model_url();
-                    }
+                /* List View Container */
+                Gtk.Box {
+                  orientation: vertical;
+                  vexpand: true;
+                  Gtk.ScrolledWindow sidebar_window {
+                    vexpand: true;
+  //                  Gtk.Box  {}
+                  }
+                } /* End of List View Container */
 
-                    Gtk.Entry stitch_file_location {
-                      primary-icon-sensitive: false;
-                      secondary-icon-sensitive: true;
-                      editable: false;
-                      // use by default
-                      secondary-icon-name: "list-add";
-                      // use when file exists (and then open that folder location)
-                      //secondary-icon-name: "emblem-download";
+              }; /* End of Sidebar Content */
 
-                      /* Define the signals and their actions */
-                      icon-press => $stitch_file_location_click();
-                    }
-/*
-                    Gtk.Box {
-              //                      hexpand: true;
-                      orientation: horizontal;
-                      margin-top: 12;
-                      margin-end: 12;
-                      margin-bottom: 12;
-                      spacing: 12;
-
-                      Adw.EntryRow stitch_file_location {
-                        hexpand: true;
-                        halign: baseline;
-                        editable: false;
-                        focus-on-click: false;
-                        sensitive: false;
-                      }
-
-                      Gtk.Button stitch_download_button {
-                        halign: end;
-                        sensitive: false;
-                        clicked => $download_url();
-                        icon-name: "folder-download";
-                        tooltip-text: "Download";
-                        styles [
-                          "suggested-action"
-                        ]
-                      }
-                    }
-*/
-
-                    // TODO: Use this section to capture specific parts of a clip that are
-                    // important.
-
-                    // TODO: Allow for the user to be able to export these sections while maintaining
-                    // the proper exif data.
-
-                    Gtk.Label {
-                      label: 'Bookmarks';
-                    }
-                  };
-                } // End of Clamp
-              } // End of Content Box
-            }; // End of Toast
+          }; /* End of Sidebar Child Content */
 
         };
-      };
+
+      content: $StitchContent stitch_content {};
     }
   };
 }
