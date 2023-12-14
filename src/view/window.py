@@ -30,60 +30,7 @@ from threading import Lock
 # Stitch Modules
 from stitches import common, constants
 from stitches.stitch_content import StitchContent
-
-class StitchesObject(GObject.GObject):
-    __gtype_name__ = 'StitchesObject'
-
-    def __init__(self, name=None, artist=None, url=None, location=None):
-        super().__init__()
-
-        # By default grab the url for the name if it's not set. The user controls the name
-        # of the object when they decide on the right hand side of the app'
-        self._name = name
-        self._artist = artist
-        self._url = url or ""
-        self._location = location
-
-        if not self._artist:
-            self._artist = common.get_artist_from_url(self._url)
-
-        if not self._name:
-            status_id = common.get_twitter_status_id(self._url)
-            self._name = f"status_{status_id}.mkv"
-
-        if not self._location:
-            artist_dir = f"{constants.BASE_DL_LOC}/{self._artist}"
-            artist_dir = os.path.expandvars(artist_dir)
-            if not os.path.exists(artist_dir):
-                os.mkdir(artist_dir)
-
-            self._location = f"{constants.BASE_DL_LOC}/{self._artist}/{self._name}"
-            self._location = os.path.expandvars(self._location)
-
-    def update_location(self):
-        self._location = f"{constants.BASE_DL_LOC}/{self._artist}/{self._name}"
-        self._location = os.path.expandvars(self._location)
-
-        artist_dir = f"{constants.BASE_DL_LOC}/{self._artist}"
-        artist_dir = os.path.expandvars(artist_dir)
-        if not os.path.exists(artist_dir):
-            os.mkdir(artist_dir)
-
-    @GObject.Property(type=str)
-    def name(self):
-        return self._name
-
-    @GObject.Property(type=str)
-    def artist(self):
-        return self._artist
-
-    @GObject.Property(type=str)
-    def url(self):
-        return self._url
-
-    @GObject.Property(type=str)
-    def location(self):
-        return self._location
+from stitches.stitch_model import StitchObject
 
 
 @Gtk.Template(resource_path='/org/codenomad/stitches/window.ui')
@@ -115,14 +62,14 @@ class StitchesWindow(Adw.ApplicationWindow):
         super().__init__(**kwargs)
 
         # self.settings = Gio.Settings.new("org.codenomad.stitches")
-        temp_object_one = StitchesObject(
+        temp_object_one = StitchObject(
             name="Twitter1.mp4",
             artist="",
             url="https://twitter.com/Thekeksociety/status/1733473570343289235",
             location=None
         )
 
-        self.model = Gio.ListStore.new(StitchesObject)
+        self.model = Gio.ListStore.new(StitchObject)
         #self.model.append(temp_object_two)
 
         # Setup the selected value
@@ -220,8 +167,8 @@ class StitchesWindow(Adw.ApplicationWindow):
         if not common.is_valid_url(url):
             return
 
-        # Add new StitchesObject to the store
-        stitches_obj = StitchesObject(url=url)
+        # Add new StitchObject to the store
+        stitches_obj = StitchObject(url=url)
         self.model.append(stitches_obj)
         entry.set_text("")
 

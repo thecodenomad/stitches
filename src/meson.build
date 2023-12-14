@@ -54,8 +54,12 @@ configure_file(
 stitches_sources = [
   '__init__.py',
   'main.py',
+  # View Logic
   'view/window.py',
   'view/stitch_content.py',
+  # Models
+  'model/stitch_model.py',
+  # Util
   'common.py',
   'constants.py'
 ]
