@@ -42,6 +42,7 @@ class StitchesWindow(Adw.ApplicationWindow):
     sidebar_entry: Gtk.Entry = Gtk.Template.Child()
     sidebar_save_button: Gtk.Button = Gtk.Template.Child()
     sidebar_window: Gtk.ScrolledWindow = Gtk.Template.Child()
+    stitch_delete_button: Gtk.Button = Gtk.Template.Child()
 
     # The container page for the content panel
     # TODO: 'Add ability to embed exif data either on download, or after. Is there a way to
@@ -71,11 +72,6 @@ class StitchesWindow(Adw.ApplicationWindow):
         # Setup the Factory to build the ListView
         self.factory = Gtk.BuilderListItemFactory.new_from_resource(None, '/org/codenomad/stitches/listitem.ui')
 
-        # Add headerbar
-        #StitchSidebarHeader(self.model)
-        #print("Instantiated fine...\n\n\n")
-        #self.sidebar_header = StitchSidebarHeader(self.model)
-
         # Create the listview
         self.sidebar_listview = Gtk.ListView(model=self.selection, factory=self.factory)
         self.sidebar_listview.props.show_separators = True
@@ -87,20 +83,20 @@ class StitchesWindow(Adw.ApplicationWindow):
         # Add main content page
         self.stitch_content = StitchContent(self.sidebar_listview, self.model)
         self.adw_navigation_split_view.set_content(self.stitch_content)
+        self.sidebar_listview.connect("activate", self.update_content)
 
         # Entry on the left should only accept URLs.
         self.sidebar_entry.set_input_purpose(Gtk.InputPurpose.URL)
-
-        # TODO: Add ability to load from JSON
-        # Add dummy data
-        # self.model.append(temp_object_one)
-        # self.stitch_content.update_content()
 
         # Load up last saved list
         self.load_list()
 
         # Keep track of which item is selected for delete function to work
         self.selected_item = None
+
+    def update_content(self, view, pos):
+        print(f"updating content at {pos}")
+        self.stitch_content.update_content()
 
 
     @Gtk.Template.Callback()
@@ -114,18 +110,11 @@ class StitchesWindow(Adw.ApplicationWindow):
             print(f"Removing: {stitch.name}")
             self.model.remove(stitch_pos)
             self.sidebar_save_button.set_sensitive(True)
+            self.stitch_content.update_content()
 
-
-    #    @Gtk.Template.Callback()
-    def save_settings(self):
-        # TODO: Add preferences panel:
-        #       - Folder location to store stitches in.
-        #       - Ability to save current list into a .json / .yaml file
-        #       - Ability to load current list from .json / .yaml file
-        #self.settings.set_int("window-width", win_size.width)
-        #self.settings.set_int("window-height", win_size.height)
-        print("yay - settings saved (Not Implimented yet")
-
+        # No items, disable delete button
+        if not self.sidebar_listview.get_model().get_selected_item():
+            self.stitch_delete_button.set_sensitive(False)
 
     def load_list(self):
         """ Saves the currently activated list """
@@ -161,10 +150,6 @@ class StitchesWindow(Adw.ApplicationWindow):
 
         self.stitch_content.update_content()
         self.stitch_content.send_toast(f"Loaded file: {filepath}", timeout=2)
-
-#    @Gtk.Template.Callback()
-    def remove_stitch(self, btn, **kwargs):
-        print("Clicked")
 
 
     @Gtk.Template.Callback()
@@ -229,7 +214,7 @@ class StitchesWindow(Adw.ApplicationWindow):
         # Remove the icon after the file was added
         common.update_secondary_icon(self.sidebar_entry, None)
         self.sidebar_save_button.set_sensitive(True)
-
+        self.stitch_delete_button.set_sensitive(True)
 
     @Gtk.Template.Callback()
     def check_and_enable(self, entry):

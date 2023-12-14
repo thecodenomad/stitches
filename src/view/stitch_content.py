@@ -157,7 +157,7 @@ class StitchContent(Adw.NavigationPage):
             print(f"Failed downloading: {stitch.url}: {e}")
 
         # Send a toast to show downloded
-        self.stitches_toast.add_toast(message)
+        #self.stitches_toast.add_toast(message)
 
 
     # Ref: https://pypi.org/project/yt-dlp/#embedding-examples
@@ -199,6 +199,13 @@ class StitchContent(Adw.NavigationPage):
         if not model:
             print(f"Couldn't find model in: {self.stitch_listview}")
             self.stitch_video.set_file(None)
+
+            # Null out all values
+            self.stitch_name_entry.set_text("")
+            self.stitch_artist_entry.set_text("")
+            self.stitch_link_entry.set_text("")
+            self.stitch_file_location.set_text("")
+
             return
 
         # Update all Stitch Content EntryRows and Entry with model values
@@ -238,4 +245,11 @@ class StitchContent(Adw.NavigationPage):
 
         # Readd item at the position
         self.model.insert(stitch_pos, stitch)
+
+        exists, new_pos = self.model.find(stitch)
+
+        selection_model = self.stitch_listview.get_model()
+
+        # Select the item and unselect everything else
+        selection_model.select_item(new_pos, True)
 
