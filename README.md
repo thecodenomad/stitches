@@ -8,8 +8,7 @@ is meant to be a way of grabbing multiple clips for use in meta-content creation
 Stitches aims to be a solution for coraling the massive amount of social media content
 into something consumable by a content creator to produce additional content (meta-content)
 
-*Disclaimer:* It is the sole responsibility of the user of this software to respect 
-copyright laws. 
+*Disclaimer:* It is the sole responsibility of the user to respect copyright laws. 
 
 ## Goals
 * Retain Context for Splices 
