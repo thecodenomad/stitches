@@ -6,15 +6,17 @@ from stitches import common, constants
 class StitchObject(GObject.GObject):
     __gtype_name__ = 'StitchObject'
 
-    def __init__(self, name=None, artist=None, url=None, location=None):
+    def __init__(self, artist=None, description=None, location=None, name=None, tags=None, url=None):
         super().__init__()
 
         # By default grab the url for the name if it's not set. The user controls the name
         # of the object when they decide on the right hand side of the app'
-        self._name = name
         self._artist = artist
-        self._url = url or ""
+        self._description = description or ""
         self._location = location
+        self._name = name
+        self._tags = []
+        self._url = url or ""
 
         if not self._artist:
             self._artist = common.get_artist_from_url(self._url)
@@ -42,18 +44,22 @@ class StitchObject(GObject.GObject):
             os.mkdir(artist_dir)
 
     @GObject.Property(type=str)
-    def name(self):
-        return self._name
-
-    @GObject.Property(type=str)
     def artist(self):
         return self._artist
 
     @GObject.Property(type=str)
-    def url(self):
-        return self._url
+    def description(self):
+        return self._description
 
     @GObject.Property(type=str)
     def location(self):
         return self._location
+
+    @GObject.Property(type=str)
+    def name(self):
+        return self._name
+
+    @GObject.Property(type=str)
+    def url(self):
+        return self._url
 

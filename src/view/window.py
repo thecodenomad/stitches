@@ -37,24 +37,17 @@ from stitches.stitch_model import StitchObject
 class StitchesWindow(Adw.ApplicationWindow):
     __gtype_name__ = 'StitchesWindow'
 
+    # Sidebar
     sidebar: Gtk.Box = Gtk.Template.Child()
-
-    # The entry field for URLs
     sidebar_entry: Gtk.Entry = Gtk.Template.Child()
-    #sidebar_header: Adw.HeaderBar = Gtk.Template.Child()
     sidebar_save_button: Gtk.Button = Gtk.Template.Child()
-
-    # The container for the list
     sidebar_window: Gtk.ScrolledWindow = Gtk.Template.Child()
 
     # The container page for the content panel
     # TODO: 'Add ability to embed exif data either on download, or after. Is there a way to
     #        embed a diff?
     adw_navigation_split_view: Adw.NavigationSplitView = Gtk.Template.Child()
-
-    # Main content panel that shows the individual stitch and it's details
     stitch_content: StitchContent = Gtk.Template.Child()
-
 
     # TODO: Add logging to the config folder
 
@@ -78,21 +71,20 @@ class StitchesWindow(Adw.ApplicationWindow):
         # Setup the Factory to build the ListView
         self.factory = Gtk.BuilderListItemFactory.new_from_resource(None, '/org/codenomad/stitches/listitem.ui')
 
-        # Create the listview
-        self.sidebar_listview = Gtk.ListView(model=self.selection, factory=self.factory)
-        self.sidebar_listview.props.show_separators = True
-        self.sidebar_listview.props.single_click_activate = True
-
         # Add headerbar
         #StitchSidebarHeader(self.model)
         #print("Instantiated fine...\n\n\n")
         #self.sidebar_header = StitchSidebarHeader(self.model)
 
+        # Create the listview
+        self.sidebar_listview = Gtk.ListView(model=self.selection, factory=self.factory)
+        self.sidebar_listview.props.show_separators = True
+        self.sidebar_listview.props.single_click_activate = True
+
         # Set listview
         self.sidebar_window.set_child(self.sidebar_listview)
 
         # Add main content page
-        print("Adding Stitch Content")
         self.stitch_content = StitchContent(self.sidebar_listview, self.model)
         self.adw_navigation_split_view.set_content(self.stitch_content)
 
@@ -104,12 +96,25 @@ class StitchesWindow(Adw.ApplicationWindow):
         # self.model.append(temp_object_one)
         # self.stitch_content.update_content()
 
-        #self.sidebar_save_button.connect("activate", self.save_list)
+        # Load up last saved list
+        self.load_list()
 
-    def toggle_changes(self, *args, **kwargs):
-        # TODO: Limit this when it's just a sorting change
-        print("Changes have been made, enable save button")
-        self.sidebar_save_button.set_sensitive(True)
+        # Keep track of which item is selected for delete function to work
+        self.selected_item = None
+
+
+    @Gtk.Template.Callback()
+    def delete_item(self, btn, **kwargs):
+        # Delete the selected item
+
+        print("Clicked delete item")
+        stitch = self.sidebar_listview.get_model().get_selected_item()
+        exists, stitch_pos = self.model.find(stitch)
+        if exists:
+            print(f"Removing: {stitch.name}")
+            self.model.remove(stitch_pos)
+            self.sidebar_save_button.set_sensitive(True)
+
 
     #    @Gtk.Template.Callback()
     def save_settings(self):
@@ -120,6 +125,46 @@ class StitchesWindow(Adw.ApplicationWindow):
         #self.settings.set_int("window-width", win_size.width)
         #self.settings.set_int("window-height", win_size.height)
         print("yay - settings saved (Not Implimented yet")
+
+
+    def load_list(self):
+        """ Saves the currently activated list """
+
+        # TODO: Link this to the config
+        filepath = f"{constants.BASE_DL_LOC}/{constants.DEFAULT_DB_FILENAME}"
+
+        # Expand OS vars
+        filepath = os.path.expandvars(filepath)
+
+        data = {}
+        # If the file exists, load it up
+        if os.path.exists(filepath):
+            try:
+                with open(filepath, 'r') as f:
+                    data = json.load(f)
+            except Exception as e:
+                self.stitch_content.send_toast(f"Failed to open file: {e}")
+                return
+
+        for url, stitch_obj in data.items():
+            loaded_stitch = StitchObject(
+                artist=stitch_obj.get("artist"),
+                description=stitch_obj.get("description"),
+                location=stitch_obj.get("location"),
+                name=stitch_obj.get("name"),
+                tags=stitch_obj.get("tags"),
+                url=stitch_obj.get("url")
+            )
+
+            # append to store
+            self.model.append(loaded_stitch)
+
+        self.stitch_content.update_content()
+        self.stitch_content.send_toast(f"Loaded file: {filepath}", timeout=2)
+
+#    @Gtk.Template.Callback()
+    def remove_stitch(self, btn, **kwargs):
+        print("Clicked")
 
 
     @Gtk.Template.Callback()
@@ -203,7 +248,6 @@ class StitchesWindow(Adw.ApplicationWindow):
         common.update_secondary_icon(self.sidebar_entry, icon_to_set)
 
 
-
     @Gtk.Template.Callback()
     def enter_submission_check(self, entry):
         """ Called when user hits enter. """
@@ -213,4 +257,5 @@ class StitchesWindow(Adw.ApplicationWindow):
             return
 
         self.add_new_url(entry)
+
 

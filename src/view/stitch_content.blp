@@ -53,19 +53,25 @@ Adw.NavigationPage {
                   apply => $update_model_url();
                 }
 
-                Gtk.Entry stitch_file_location {
-                  primary-icon-sensitive: false;
-                  secondary-icon-sensitive: true;
-                  editable: false;
-                  // use by default
-                  secondary-icon-name: "document-save";
-                  // use when file exists (and then open that folder location)
-                  //secondary-icon-name: "emblem-download";
+                Gtk.Box {
+                  orientation: horizontal;
+                  hexpand: true;
 
-                  /* Define the signals and their actions */
-                  icon-press => $stitch_file_location_click();
+                  Gtk.Entry stitch_file_location {
+                    hexpand: true;
+                    primary-icon-sensitive: false;
+                    secondary-icon-sensitive: true;
+                    editable: false;
+                    // use by default
+                    secondary-icon-name: "document-save";
+                    // use when file exists (and then open that folder location)
+                    //secondary-icon-name: "emblem-download";
+
+                    /* Define the signals and their actions */
+                    icon-press => $stitch_file_location_click();
+                  }
+
                 }
-
               };
             } // End of Clamp
           } // End of Content Box

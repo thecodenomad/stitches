@@ -7,8 +7,9 @@ template Gtk.ListItem  {
       height-request: 75;
 
       Adw.ActionRow stitch_name_entry {
-        subtitle: bind (template.item as <$StitchesObject>).url;
-        title: bind (template.item as <$StitchesObject>).name;
+        subtitle: bind (template.item as <$StitchObject>).url;
+        title: bind (template.item as <$StitchObject>).name;
       }
+
     };
 }

@@ -14,7 +14,6 @@ from yt_dlp import YoutubeDL
 YT_DLP_OPTIONS = {"outtmpl": f"{constants.BASE_DL_LOC}/%(title)s.%(ext)s"}
 
 
-
 @Gtk.Template(resource_path='/org/codenomad/stitches/stitch_content.ui')
 class StitchContent(Adw.NavigationPage):
     __gtype_name__ = 'StitchContent'
@@ -161,7 +160,6 @@ class StitchContent(Adw.NavigationPage):
         self.stitches_toast.add_toast(message)
 
 
-
     # Ref: https://pypi.org/project/yt-dlp/#embedding-examples
     def download_from_youtube(self, stitch):
 
@@ -184,8 +182,14 @@ class StitchContent(Adw.NavigationPage):
         print(f'Filename: {yt_dl_options["outtmpl"]["default"]}')
 
 
-    def send_toast(self, message):
-        self.stitches_toast.add_toast(Adw.Toast.new(message))
+    def send_toast(self, message, timeout=constants.DEFAULT_TOAST_TIMEOUT):
+        print(f"Trying to send toast: {message}")
+        if not message:
+            return
+
+        toast_msg = Adw.Toast.new(message)
+        toast_msg.set_timeout(timeout)
+        self.stitches_toast.add_toast(toast_msg)
 
 
     def update_content(self, *args, **kwargs):

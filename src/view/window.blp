@@ -78,8 +78,17 @@ template $StitchesWindow: Adw.ApplicationWindow {
                   vexpand: true;
                   Gtk.ScrolledWindow sidebar_window {
                     vexpand: true;
-  //                  Gtk.Box  {}
                   }
+
+                  [end]
+                  Gtk.Button stitch_delete_button {
+                    icon-name: "edit-delete";
+                    clicked => $delete_item();
+                    styles [
+                      "flat"
+                    ]
+                  }
+
                 } /* End of List View Container */
 
               }; /* End of Sidebar Content */
