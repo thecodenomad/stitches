@@ -174,6 +174,8 @@ class StitchContent(Adw.NavigationPage):
                 "merge_output_format": "mkv"
         }
 
+        self.send_toast(f"Downloading: {stitch.url}")
+
         with YoutubeDL(yt_dl_options) as ydl:
             thread = Thread(target=self._download_wrapper, args=[stitch, yt_dl_options], daemon=False)
             thread.start()
