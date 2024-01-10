@@ -75,7 +75,7 @@ class StitchesWindow(Adw.ApplicationWindow):
         # Create the listview
         self.sidebar_listview = Gtk.ListView(model=self.selection, factory=self.factory)
         self.sidebar_listview.props.show_separators = True
-        self.sidebar_listview.props.single_click_activate = True
+        self.sidebar_listview.props.single_click_activate = False
 
         # Set listview
         self.sidebar_window.set_child(self.sidebar_listview)

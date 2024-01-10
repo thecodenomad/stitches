@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <gresources>
   <gresource prefix="/org/codenomad/stitches">
-    <file preprocess="xml-stripblanks">window.ui</file>
     <file preprocess="xml-stripblanks">listitem.ui</file>
+    <file preprocess="xml-stripblanks">preferences.ui</file>
     <file preprocess="xml-stripblanks">stitch_content.ui</file>
+    <file preprocess="xml-stripblanks">window.ui</file>
   </gresource>
 </gresources>

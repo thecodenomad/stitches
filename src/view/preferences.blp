@@ -1,0 +1,40 @@
+using Gtk 4.0;
+using Adw 1;
+
+template $PreferencesWindow: Adw.ApplicationWindow {
+  title: 'Preferences';
+  default-width: 1024;
+  default-height: 640;
+  width-request: 1024;
+  height-request: 640;
+
+    Adw.Clamp {
+
+      child:
+        Gtk.Box {
+          orientation: vertical;
+          spacing: 12;
+
+          Adw.EntryRow stitch_name_entry {
+            title: 'Name';
+            activates-default: true;
+            show-apply-button: true;
+            apply => $update_model_name();
+          }
+
+          Adw.EntryRow stitch_artist_entry {
+            title: 'Artist';
+            activates-default: true;
+            show-apply-button: true;
+            apply => $update_model_artist();
+          }
+
+          Adw.EntryRow stitch_link_entry {
+            title: 'URL';
+            activates-default: true;
+            show-apply-button: true;
+            apply => $update_model_url();
+          }
+        };
+    }
+}
